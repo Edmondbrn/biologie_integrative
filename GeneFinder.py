@@ -3,9 +3,9 @@ import requests
 from pyensembl import EnsemblRelease
 from Bio import SeqIO
 from io import StringIO
-from numba import jit
 from os import chdir, path
 from time import time
+import multi_request
 
 # Changer le répertoire de travail
 chdir(path.dirname(__file__))
@@ -118,8 +118,9 @@ class GeneFinder():
         """
         Method to get the gene sequence using the Ensembl REST API
         """
-        self.__url = f"https://rest.ensembl.org/sequence/id/{self.__gene.gene_id}?content-type=text/x-fasta" # normalement renvoie le gène sur le brin codant donc l'ARN correspond à cet output mais à vérifier
-        self.__response = self.__session.get(self.__url)  # Utiliser la session persistante
+        # self.__url = f"https://rest.ensembl.org/sequence/id/{self.__gene.gene_id}?content-type=text/x-fasta" # normalement renvoie le gène sur le brin codant donc l'ARN correspond à cet output mais à vérifier
+        # self.__response = self.__session.get(self.__url)  # Utiliser la session persistante
+        multi_request.get_gene_sequences(liste_id)
         if self.__IsStatusOkay():
             self.__fasta_io = StringIO(self.__response.text) # create a StringIO object
             self.__record = SeqIO.read(self.__fasta_io, "fasta") # read the sequence in FASTA format
@@ -161,7 +162,8 @@ class GeneFinder():
             self.cpt += 1
             return False
             
-    def __BrowseGene(self):
+    def __BrowseGene(self): 
+        # TODO : A changer pour collecter les gènes d'un seul coup
         """
         Method to browse the list of genes and to search for the gene, get the gene sequence and find a motif in the gene sequence
         """
@@ -177,18 +179,9 @@ class GeneFinder():
             self.end_1st_url = time()
             print(f"Gene {self.__gene_name} found in {self.end_1st_url - self.start_1st_url} seconds")
             self.__CheckGene() # check if the gene is in the database and if there are various matches
-            self.start_2nd_url = time()
             self.__GetGeneSequence() # get the gene sequence using the Ensembl REST API
-            self.end_2nd_url = time()
-            print(f"Gene sequence of {self.__gene_name} downloaded in {self.end_2nd_url - self.start_2nd_url} seconds")
-            self.start_sequencebis = time()
             self.__GetGeneSequencebis()
-            self.end_sequencebis = time()
-            print(f"LOCALLY Gene sequence of {self.__gene_name} downloaded in {self.end_sequencebis - self.start_sequencebis} seconds")
-            self.start_searching = time()
             self.tuple_corrd = self.__FindMotif() # find the RNA sequence in the gene sequence
-            self.end_searching = time()
-            print(f"Motif {self.__pattern} found in {self.end_searching - self.start_searching} seconds")
             self.data_store[(self.__gene_name, self.__pattern, self.cpt)] = self.tuple_corrd
             self.cpt += 1
         #     print(f"Gene \r{self.cpt}/{self.length} processed", end = "")
