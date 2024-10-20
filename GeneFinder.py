@@ -1,32 +1,50 @@
 import re
 import requests
-from pyensembl import EnsemblRelease, Gene
+from pyensembl import EnsemblRelease
 from Bio import SeqIO
 from io import StringIO
+from numba import jit
 from os import chdir, path
+from time import time
 
 # Changer le répertoire de travail
 chdir(path.dirname(__file__))
 
 class GeneFinder():
+
     """
     Class to convert RNA coordinates into DNA coordinates
     """
 
-    def __init__(self, gene_name : str, RNA_seq : str, species : str ='human', release : int =104):
+    def __init__(self, gene_name : list[str], RNA_seq : list[str], species : str ='human', release : int = 113):
+        if not isinstance(gene_name, list):
+            raise ValueError("The gene name must be a list")
+        if not isinstance(RNA_seq, list):
+            raise ValueError("The RNA sequence must be a list")
         self.__gene_name = gene_name
         self.__pattern = RNA_seq
         self.__species = species
         self.__release = release
-        self.__data = EnsemblRelease(release, species = self.__species)
+        self.__data = EnsemblRelease(self.__release, species = self.__species)
         self.__gene = None
+        self.__session = requests.Session()
+
+    def _destroy(self):
+        """
+        Methode to destroy the object
+        """
+        del self.__gene_name
+        del self.__pattern
+        del self.__species
+        del self.__release
+        del self.__data
+        del self.__gene
 
 
-    def __DownloadIndex(self):
+    def _DownloadIndex(self):
         """Méthod to donwload and index the data if necessary"""
         self.__data.download()
         self.__data.index()
-        self.__gene = self.__data.genes_by_name(self.__gene_name)
 
     def __IsNone(self, object):
         """
@@ -76,7 +94,7 @@ class GeneFinder():
                 self.__ChooseGene()
                 self.__gene = self.__gene[self.__choice]
 
-    def __DisplayGeneInfo(self):
+    def _DisplayGeneInfo(self):
         """
         Methode to display information about the gene
         """
@@ -101,11 +119,16 @@ class GeneFinder():
         Method to get the gene sequence using the Ensembl REST API
         """
         self.__url = f"https://rest.ensembl.org/sequence/id/{self.__gene.gene_id}?content-type=text/x-fasta" # normalement renvoie le gène sur le brin codant donc l'ARN correspond à cet output mais à vérifier
-        self.__response = requests.get(self.__url) # send a request to the API
+        self.__response = self.__session.get(self.__url)  # Utiliser la session persistante
         if self.__IsStatusOkay():
             self.__fasta_io = StringIO(self.__response.text) # create a StringIO object
             self.__record = SeqIO.read(self.__fasta_io, "fasta") # read the sequence in FASTA format
-        
+    
+
+    def __GetGeneSequencebis(self):
+        self.__GENE = self.__data.gene_by_id(self.__gene.gene_id)
+        print(self.__GENE)
+
     def __GetInfoGeneSequence(self):
         """
         Method to get information about the gene sequence
@@ -120,30 +143,85 @@ class GeneFinder():
         """
         self.__match = list(re.finditer(self.__pattern, str(self.__record.seq)))
         if self.__IsNone(self.__match): # if the motif is not found
-            print("Motif not found")
+            return ("Pattern not found", "Pattern not found")
         else:
             if self.__IsUnique(self.__match): # if the motif is found only once
                 self.__coordinates_start = self.__gene.start + self.__match[0].start()
                 self.__coordinates_end = self.__gene.start + self.__match[0].end()
-                print(f"Motif found at position {self.__coordinates_start} : {self.__coordinates_end}")
+                return (self.__coordinates_start, self.__coordinates_end)
             else:
-                print("Multiple matches found")
+                return "Multiple matches found"
+    
+    def GetGeneEnsemblName(self):
+        try:
+            self.__gene = self.__data.genes_by_name(self.__gene_name)
+            return True
+        except:
+            self.data_store[(self.__gene_name, self.__pattern, self.cpt)] = ("Gene not found", "Gene not found")
+            self.cpt += 1
+            return False
+            
+    def __BrowseGene(self):
+        """
+        Method to browse the list of genes and to search for the gene, get the gene sequence and find a motif in the gene sequence
+        """
+        self.data_store = dict()
+        self.cpt = 0
+        # self.length = len(self.__gene_name)
+        for gene, motif in zip(self.__gene_name, self.__pattern):
+            self.__gene_name = gene
+            self.__pattern = motif
+            self.start_1st_url = time()
+            if not self.GetGeneEnsemblName() : # verify if ensembl succeed to find the gene
+                continue
+            self.end_1st_url = time()
+            print(f"Gene {self.__gene_name} found in {self.end_1st_url - self.start_1st_url} seconds")
+            self.__CheckGene() # check if the gene is in the database and if there are various matches
+            self.start_2nd_url = time()
+            self.__GetGeneSequence() # get the gene sequence using the Ensembl REST API
+            self.end_2nd_url = time()
+            print(f"Gene sequence of {self.__gene_name} downloaded in {self.end_2nd_url - self.start_2nd_url} seconds")
+            self.start_sequencebis = time()
+            self.__GetGeneSequencebis()
+            self.end_sequencebis = time()
+            print(f"LOCALLY Gene sequence of {self.__gene_name} downloaded in {self.end_sequencebis - self.start_sequencebis} seconds")
+            self.start_searching = time()
+            self.tuple_corrd = self.__FindMotif() # find the RNA sequence in the gene sequence
+            self.end_searching = time()
+            print(f"Motif {self.__pattern} found in {self.end_searching - self.start_searching} seconds")
+            self.data_store[(self.__gene_name, self.__pattern, self.cpt)] = self.tuple_corrd
+            self.cpt += 1
+        #     print(f"Gene \r{self.cpt}/{self.length} processed", end = "")
+        # print(f"Gene {self.length}/{self.length} processed")
+        return self.data_store
+
+   
+    
+    def __FormatResults(self):
+        """
+        Method to format the output file of the analysis
+        """
+        self.fh = open("results.txt", "w")
+        self.fh.write("Gene\tMotif\tCoordinates_start\tCoordinates_end\n")
+        for key, value in self.final_data.items():
+            self.fh.write(f"{key[0]}\t{key[1]}\t{value[0]}\t{value[1]}\n")
+        self.fh.close()
+        print("Results saved in results.txt")
+
+
+
 
     def _Finder(self):
         """
         Method to find the gene, get the gene sequence and find a motif in the gene sequence
         """
-        self.__DownloadIndex()
-        self.__CheckGene()
-        self.__GetGeneSequence()
-        self.__DisplayGeneInfo()
-        self.__FindMotif()
+        self._DownloadIndex()
+        self.final_data = self.__BrowseGene()
+        self.__FormatResults()
 
-
-# Rechercher le gène Msh2
-gene_name = "Dlc1"
-
-mmotif = "CTGCAGATAGATTACAAGG"
-
-finder = GeneFinder(gene_name, mmotif, "mouse")
-finder._Finder()
+if __name__ == "__main__":
+    # Rechercher le gène Msh2
+    gene_name = ["Dlc1", "Msh2", "Hspa9"]
+    mmotif = ["CTGCAGATAGATTACAAGG", "ATTTGGGTTAGCATGGGCT", "GCTCAAGGATTATGACTGC"]
+    finder = GeneFinder(gene_name, mmotif, "mouse", 111)
+    finder._Finder()
