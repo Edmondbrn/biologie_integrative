@@ -2,6 +2,12 @@ import requests
 from  pyensembl import EnsemblRelease
 from multiprocessing import Pool
 import time
+import pandas as pd
+
+NT_FLANCANT = 600
+GENE_PER_PROCESS = 10
+NB_PROCESS = 8
+REQUESTS_PER_SECOND = 15
 
 
 def request_gene(parameters : tuple):
@@ -10,6 +16,8 @@ def request_gene(parameters : tuple):
     base_url = "https://rest.ensembl.org"
     dict_sequences = {}
     for gene_id in gene_ids:
+        if gene_id in dict_sequences.keys(): # saute si on a déjà récupéré la séquence d'un gène précis
+            continue
         gene = data_release.gene_by_id(gene_id)
         # Construire l'URL pour la requête
         url = f"{base_url}/sequence/region/{specie}/{gene.contig}:{gene.start - nb_flancant}..{gene.end + nb_flancant}:{gene.strand}?content-type=text/plain"
@@ -22,7 +30,9 @@ def request_gene(parameters : tuple):
         else:
             print(f"Failed to retrieve sequence: {response.status_code}, {response.text}")
             dict_sequences[gene_id] = None
-        return dict_sequences
+        # Pause pour respecter la limite de 15 requêtes par seconde
+        time.sleep(0.3)
+    return dict_sequences
             
 
 def get_dna_sequences(gene_ids_list : list[str], nb_flancant : int = 600 , specy : str = "human"):
@@ -31,14 +41,12 @@ def get_dna_sequences(gene_ids_list : list[str], nb_flancant : int = 600 , specy
     nb_id = len(gene_ids_list)
     params = list()
     data_release = EnsemblRelease(species = specy)
-
     while id < nb_id : # On découpe la liste des ensembl_ids en batchs de taille NB_IDS_PER_REQUEST
         params.append((gene_ids_list[id:id+GENE_PER_PROCESS], specy, data_release, nb_flancant))
         id += GENE_PER_PROCESS
 
     pool = Pool(processes = NB_PROCESS) # On crée un pool de processus pour la parallélisation
     gene_sequences : list[dict] = pool.map(request_gene, params) # on exécute les requêtes en parallèle
-    
     final_dict = dict()
     for dict_genes  in gene_sequences:
         final_dict = {**final_dict, **dict_genes}
@@ -46,17 +54,21 @@ def get_dna_sequences(gene_ids_list : list[str], nb_flancant : int = 600 , specy
 
 
 # Exemple d'utilisation
-ensembl_ids = [
-    "ENSMUSG00000064372", "ENSMUSG00000064371", "ENSMUSG00000064370", "ENSMUSG00000064369", "ENSMUSG00000064368",
-    "ENSMUSG00000064367", "ENSMUSG00000064366", "ENSMUSG00000064365", "ENSMUSG00000064364", "ENSMUSG00000064363"
-]
+df = pd.read_csv("/home/edmond/Documents/GB5/biologie_integrative/rmats_post/A5SS.MATS.JCEC.txt", 
+                 sep = "\t")
+ensembl_ids = df["GeneID"][:50].values
+print(f"Il y a {len(pd.unique(ensembl_ids))} séquences uniques")
 data = EnsemblRelease(species = "mouse")
 dict_gene_info = {}
+gene_to_remove = []
 for ensembl_d in ensembl_ids:
-    dict_gene_info[ensembl_d] = data.gene_by_id(ensembl_d)
-NT_FLANCANT = 600
-GENE_PER_PROCESS = 1
-NB_PROCESS = 8
+    try :
+        dict_gene_info[ensembl_d] = data.gene_by_id(ensembl_d)
+    except:
+        gene_to_remove.append(ensembl_d)
+        continue
+for gene in gene_to_remove:
+    ensembl_ids.remove(gene)
 
 # gene par gene 
 
@@ -69,5 +81,17 @@ NB_PROCESS = 8
 
 # Multiprocess
 debut = time.time()
-print(get_dna_sequences(ensembl_ids, nb_flancant= 600, specy="mouse"))
-print(time.time() - debut)
+dico = get_dna_sequences(ensembl_ids, nb_flancant= 600, specy="mouse")
+print(f"Pour {len(dico)} sequences, le programme a mis {time.time() - debut} secondes")
+
+fh = open("gene_sequences_new.txt", "w")
+for id, sequences in dico.items():
+    fh.write(f"{id}\n")
+    try :
+        for nuc in range(0, len(sequences) -len(sequences)%80, 80):
+            fh.write(f'{sequences[0+nuc : nuc +80].strip()}\n')
+    except:
+        fh.write(f"{sequences}\n")
+
+
+fh.close()
