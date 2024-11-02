@@ -50,19 +50,22 @@ class GeneFinder():
         """
         Méthod to check if the gene is None
         """
-        if not object:
-            return True
-        else:
-            return False
-        
+        return not object
+           
     def __IsUnique(self, object):
         """
         Méthod to check if the gene is unique
         """
-        if len(object) == 1:
-            return True
-        else:
-            return False
+        return len(object) == 1
+         
+    
+    def __IsStatusOkay(self):
+        """
+        Methode to check if the status code of the response is 200
+        """
+        return self.__response.status_code == 200
+          
+
 
     def __ChooseGene(self):
         """
@@ -105,15 +108,7 @@ class GeneFinder():
         print(f"End position: {self.__gene.end}")
         print(f"Strand: {self.__gene.strand}")
 
-    def __IsStatusOkay(self):
-        """
-        Methode to check if the status code of the response is 200
-        """
-        if self.__response.status_code == 200:
-            return True
-        else:
-            return False
-
+  
     def __GetGeneSequence(self):
         """
         Method to get the gene sequence using the Ensembl REST API
