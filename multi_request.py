@@ -1,115 +1,82 @@
 import requests
-import json
+from  pyensembl import EnsemblRelease
 from multiprocessing import Pool
-from pyensembl import EnsemblRelease
+import time
+import pandas as pd
 
-NB_IDS_PER_REQUEST = 50
-NB_PROCESSES = 8
-data = EnsemblRelease(species = 'mouse')
+NT_FLANCANT = 600
+GENE_PER_PROCESS = 10
+NB_PROCESS = 8
+REQUESTS_PER_SECOND = 15
 
 
-def create_send_request(param : tuple):
-    liste_ensembl, url, headers = param
-    data = json.dumps({"ids": liste_ensembl})
-    response = session.post(url, headers=headers, data=data)
-    if response.status_code == 200:
-        print('Request successfull')
-        return response.json()
-    else:
-        print(f"Failed to retrieve sequences: {response.status_code}, {response.text}")
-        return []
+ 
 
+
+def request_gene(parameters : tuple):
+    trans_ids, start_list, end_list, specie = parameters
+    # URL de base pour l'API REST d'Ensembl
+    base_url = "https://rest.ensembl.org"
+    dict_sequences = {}
+    for transcrit_id, start, end in zip(trans_ids, start_list, end_list):
+        # Construire l'URL pour la requête
+        url = f"{base_url}/map/cdna/{transcrit_id}/{start}..{end}"
+        # Envoyer la requête GET
+        response = requests.get(url, headers={"Content-Type" : "application/json"})
         
-# Fonction pour récupérer des séquences
-def get_gene_sequences(ensembl_ids : list):
-    url = "https://rest.ensembl.org/sequence/id"
-    headers = {"Content-Type": "application/json", "Accept": "application/json"}
-    nb_id = len(ensembl_ids)
-    params = list()
+        # Vérifier le statut de la réponse
+        if response.status_code == 200:
+            # TODO Voir pour diviser le cas où on a plusieurs fois le même transcrit
+            dict_sequences[transcrit_id] = response.text.strip()
+        else:
+            print(f"Failed to retrieve transcript ID: {response.status_code}, {response.text}")
+            dict_sequences[transcrit_id] = None
+    return dict_sequences
+            
+def get_dna_sequences(transcript_ids_list : list[str] , start_trans :list[int], end_trans : list[int], specy : str = "mouse"):
+
     id = 0
-    gene_list = list()
+    nb_id = len(transcript_ids_list)
+    params = list()
     while id < nb_id : # On découpe la liste des ensembl_ids en batchs de taille NB_IDS_PER_REQUEST
-        params.append((ensembl_ids[id:id+NB_IDS_PER_REQUEST], url, headers))
-        id += NB_IDS_PER_REQUEST
+        params.append((transcript_ids_list[id:id+GENE_PER_PROCESS], start_trans[id:id+GENE_PER_PROCESS], end_trans[id:id+GENE_PER_PROCESS], specy))
+        id += GENE_PER_PROCESS
 
-    pool = Pool(processes = NB_PROCESSES) # On crée un pool de processus pour la parallélisation
-    sequences = pool.map(create_send_request,params) # on exécute les requêtes en parallèle
-    for seq in sequences:
-        gene_list.extend(seq)
-    return gene_list
-    
-
-
-if __name__ == "__main__":
-    session = requests.Session()
-
-    ensembl_ids = [
-    "ENSG00000139618", "ENSG00000141510", "ENSG00000157764", "ENSG00000198947", "ENSG00000198793",
-    "ENSG00000198786", "ENSG00000198888", "ENSG00000198804", "ENSG00000198805", "ENSG00000198887"]
-
-    # Récupérer les séquences en batchs (taille de batch = 10, 5 requêtes simultanées)
-    import time
-    debut = time.time()
-    sequences = get_gene_sequences(ensembl_ids)
-
-    # Affiche les premières séquences
-    fh = open("test_ensembl_request.txt", "w")
-    for seq in sequences:
-        print(f"ID: {seq['id']}, Sequence: {seq['seq'][:100]}...\n")
-        # save result in FASTA file avec retour à la ligne tous les 80 nulcetotides
-        fh.write(f">{seq['id']}\n")
-        for i in range(0, len(seq['seq']), 80):
-            fh.write(seq['seq'][i:i+80] + "\n")
-        fh.write("="*80 + "\n")
-
-    fh.close()
-    print(f"Temps écoulé : {time.time() - debut:.2f} secondes")
+    pool = Pool(processes = NB_PROCESS) # On crée un pool de processus pour la parallélisation
+    gene_sequences : list[dict] = pool.map(request_gene, params) # on exécute les requêtes en parallèle
+    final_dict = dict()
+    for dict_genes  in gene_sequences:
+        final_dict = {**final_dict, **dict_genes}
+    return final_dict
 
 
+# Exemple d'utilisation
+transcript_ids_list = [
+    "ENSMUST00000193812", "ENSMUST00000193813", "ENSMUST00000193814", "ENSMUST00000193815", "ENSMUST00000193816",
+    "ENSMUST00000193817", "ENSMUST00000193818", "ENSMUST00000193819", "ENSMUST00000193820", "ENSMUST00000193821",
+    "ENSMUST00000193822", "ENSMUST00000193823", "ENSMUST00000193824", "ENSMUST00000193825", "ENSMUST00000193826",
+    "ENSMUST00000193827", "ENSMUST00000193828", "ENSMUST00000193829", "ENSMUST00000193830", "ENSMUST00000193831"
+]
 
-# import aiohttp
-# import asyncio
-# import json
+start_trans = [
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1
+]
 
-# NB_IDS_PER_REQUEST = 10
+end_trans = [
+    1000, 1100, 1200, 1300, 1400,
+    1500, 1600, 1700, 1800, 1900,
+    2000, 2100, 2200, 2300, 2400,
+    2500, 2600, 2700, 2800, 2900
+]
 
-# async def create_send_request(session, param):
-#     liste_ensembl, url, headers = param
-#     data = json.dumps({"ids": liste_ensembl})
-#     async with session.post(url, headers=headers, data=data) as response:
-#         if response.status == 200:
-#             print('Request successful')
-#             return await response.json()
-#         else:
-#             print(f"Failed to retrieve sequences: {response.status}, {await response.text()}")
-#             return []
+# Appeler la fonction get_dna_sequences
+sequences = get_dna_sequences(transcript_ids_list, start_trans, end_trans, specy="mouse")
 
-# async def get_gene_sequences(ensembl_ids):
-#     url = "https://rest.ensembl.org/sequence/id"
-#     headers = {"Content-Type": "application/json", "Accept": "application/json"}
-#     params = [(ensembl_ids[i:i+NB_IDS_PER_REQUEST], url, headers) for i in range(0, len(ensembl_ids), NB_IDS_PER_REQUEST)]
-    
-#     async with aiohttp.ClientSession() as session:
-#         tasks = [create_send_request(session, param) for param in params]
-#         sequences = await asyncio.gather(*tasks)
-    
-#     gene_list = []
-#     for seq in sequences:
-#         gene_list.extend(seq)
-#     return gene_list
+# Afficher les séquences récupérées
+for transcript_id, sequence in sequences.items():
+    print(f"Transcript ID: {transcript_id}, Sequence: {sequence}...")  # Afficher les 100 premiers nucléotides
 
-# if __name__ == "__main__":
-#     ensembl_ids = [
-#         "ENSG00000139618", "ENSG00000141510", "ENSG00000157764", "ENSG00000198947", "ENSG00000198793",
-#         "ENSG00000198786", "ENSG00000198888", "ENSG00000198804", "ENSG00000198805", "ENSG00000198887"
-#     ]
-
-#     # Récupérer les séquences en batchs (taille de batch = 10)
-#     import time
-#     debut = time.time()
-#     sequences = asyncio.run(get_gene_sequences(ensembl_ids))
-
-#     # Affiche les premières séquences
-#     for seq in sequences:
-#         print(f"ID: {seq['id']}, Sequence: {seq['seq'][:100]}...\n")
-#     print(f"Temps écoulé : {time.time() - debut:.2f} secondes")
+ 
