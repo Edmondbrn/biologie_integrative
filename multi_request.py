@@ -2,11 +2,11 @@ import requests
 from  pyensembl import EnsemblRelease
 from multiprocessing import Pool
 import time
+import json
 import pandas as pd
 
-NT_FLANCANT = 600
-GENE_PER_PROCESS = 10
-NB_PROCESS = 8
+GENE_PER_PROCESS = 3
+NB_PROCESS = 16
 REQUESTS_PER_SECOND = 15
 
 
@@ -29,7 +29,7 @@ def request_gene(parameters : tuple):
             # TODO Voir pour diviser le cas où on a plusieurs fois le même transcrit
             dict_sequences[transcrit_id] = response.text.strip()
         else:
-            print(f"Failed to retrieve transcript ID: {response.status_code}, {response.text}")
+            print(f"Failed to retrieve transcript ID: {response.status_code}")
             dict_sequences[transcrit_id] = None
     return dict_sequences
             
@@ -71,12 +71,19 @@ end_trans = [
     2000, 2100, 2200, 2300, 2400,
     2500, 2600, 2700, 2800, 2900
 ]
+transcript_dict = {transcript_id: (start, end) for transcript_id, start, end in zip(transcript_ids_list, start_trans, end_trans)}
 
 # Appeler la fonction get_dna_sequences
 sequences = get_dna_sequences(transcript_ids_list, start_trans, end_trans, specy="mouse")
 
 # Afficher les séquences récupérées
 for transcript_id, sequence in sequences.items():
-    print(f"Transcript ID: {transcript_id}, Sequence: {sequence}...")  # Afficher les 100 premiers nucléotides
-
- 
+    if sequence != None :
+        sequence = json.loads(sequence) # convertit la str en dictionnaire
+        start_gen = sequence["mappings"][0]["start"]
+        start_arn = transcript_dict[transcript_id][0]
+        end_gen = sequence["mappings"][0]["end"]
+        end_arn = transcript_dict[transcript_id][1]
+        print(f"Transcript ID: {transcript_id} position {start_arn} : {end_arn}, Genomic position: {start_gen} : {end_gen}")  # Afficher les 100 premiers nucléotides
+    else:
+        print(f"Transcript ID: {transcript_id} not found")
