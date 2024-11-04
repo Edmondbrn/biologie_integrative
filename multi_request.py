@@ -1,54 +1,61 @@
 import requests
-import json
 from multiprocessing import Pool
-
-NB_IDS_PER_REQUEST = 10
-NB_PROCESSES = 16
+import json
 
 
-def create_send_request(param : tuple):
-    liste_ensembl, url, headers = param
-    data = json.dumps({"ids": liste_ensembl})
-    response = requests.post(url, headers=headers, data=data)
-    if response.status_code == 200:
-        print('Request successfull')
-        return response.json()
-    else:
-        print(f"Failed to retrieve sequences: {response.status_code}, {response.text}")
-        return []
+GENE_PER_PROCESS = 10
+NB_PROCESS = 8
+REQUESTS_PER_SECOND = 15
 
-        
-# Fonction pour récupérer des séquences
-def get_gene_sequences(ensembl_ids : list):
-    url = "https://rest.ensembl.org/sequence/id"
-    headers = {"Content-Type": "application/json", "Accept": "application/json"}
-    params = list()
-    nb_id = len(ensembl_ids)
-    gene_list = list()
+def request_gene(parameters: tuple):
+    trans_ids, start_list, end_list, specie = parameters
+    base_url = "https://rest.ensembl.org"
+    dict_sequences = {}
+    for transcrit_id, start, end in zip(trans_ids, start_list, end_list):
+        url = f"{base_url}/map/cdna/{transcrit_id}/{start}..{end}"
+        response = requests.get(url, headers={"Content-Type": "application/json"})
+        if response.status_code == 200:
+            dict_sequences[transcrit_id] = response.text.strip()
+        else:
+            print(f"Failed to retrieve transcript ID: {response.status_code}")
+            dict_sequences[transcrit_id] = None
+    return dict_sequences
+
+def get_dna_sequences(transcript_ids_list: list[str], start_trans: list[int], end_trans: list[int], specy: str = "mouse"):
     id = 0
-    while id < nb_id :
-        params.append((ensembl_ids[id:id+NB_IDS_PER_REQUEST], url, headers))
-        id += NB_IDS_PER_REQUEST
-    pool = Pool(processes = NB_PROCESSES)
-    sequences = pool.map(create_send_request,params)
-    for seq in sequences:
-        gene_list.extend(seq)
-    return gene_list
+    nb_id = len(transcript_ids_list)
+    params = []
+    while id < nb_id:
+        params.append((transcript_ids_list[id:id + GENE_PER_PROCESS], start_trans[id:id + GENE_PER_PROCESS], end_trans[id:id + GENE_PER_PROCESS], specy))
+        id += GENE_PER_PROCESS
 
+    with Pool(processes=NB_PROCESS) as pool:
+        gene_sequences = pool.map(request_gene, params)
+    final_dict = {}
+    for dict_genes in gene_sequences:
+        final_dict = {**final_dict, **dict_genes}
+    return final_dict
 
-
-    
 if __name__ == "__main__":
-    ensembl_ids = [
-    "ENSG00000139618", "ENSG00000141510", "ENSG00000157764", "ENSG00000198947", "ENSG00000198793",
-    "ENSG00000198786", "ENSG00000198888", "ENSG00000198804", "ENSG00000198805", "ENSG00000198887"]
+    transcript_ids_list = [
+        "ENSMUST00000193812", "ENSMUST00000193813", "ENSMUST00000193814", "ENSMUST00000193815", "ENSMUST00000193816",
+        "ENSMUST00000193817", "ENSMUST00000193818", "ENSMUST00000193819", "ENSMUST00000193820", "ENSMUST00000193821",
+        "ENSMUST00000193822", "ENSMUST00000193823", "ENSMUST00000193824", "ENSMUST00000193825", "ENSMUST00000193826",
+        "ENSMUST00000193827", "ENSMUST00000193828", "ENSMUST00000193829", "ENSMUST00000193830", "ENSMUST00000193831"
+    ]
 
-    # Récupérer les séquences en batchs (taille de batch = 10, 5 requêtes simultanées)
-    import time
-    debut = time.time()
-    sequences = get_gene_sequences(ensembl_ids)
+    start_trans = [1] * len(transcript_ids_list)
+    end_trans = [1000 + i * 100 for i in range(len(transcript_ids_list))]
+    transcript_dict = {transcript_id: (start, end) for transcript_id, start, end in zip(transcript_ids_list, start_trans, end_trans)}
 
-    # Affiche les premières séquences
-    for seq in sequences:
-        print(f"ID: {seq['id']}, Sequence: {seq['seq'][:100]}...\n")
-    print(f"Temps écoulé : {time.time() - debut:.2f} secondes")
+    sequences = get_dna_sequences(transcript_ids_list, start_trans, end_trans, specy="mouse")
+    for transcript_id, sequence in sequences.items():
+        if sequence is not None:
+            sequence = json.loads(sequence)
+            start_gen = sequence["mappings"][0]["start"]
+            start_arn = transcript_dict[transcript_id][0]
+            end_gen = sequence["mappings"][0]["end"]
+            end_arn = transcript_dict[transcript_id][1]
+            print(f"Transcript ID: {transcript_id} position {start_arn}:{end_arn}, Genomic position: {start_gen}:{end_gen}")
+        else:
+            print(f"Transcript ID: {transcript_id} not found")
