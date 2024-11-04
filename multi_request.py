@@ -5,8 +5,8 @@ import time
 import json
 import pandas as pd
 
-GENE_PER_PROCESS = 3
-NB_PROCESS = 16
+GENE_PER_PROCESS = 10
+NB_PROCESS = 8
 REQUESTS_PER_SECOND = 15
 
 
