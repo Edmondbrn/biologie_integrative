@@ -5,8 +5,8 @@ import time
 import json
 import pandas as pd
 
-GENE_PER_PROCESS = 10
-NB_PROCESS = 8
+GENE_PER_PROCESS = 5
+NB_PROCESS = 16
 REQUESTS_PER_SECOND = 15
 
 
@@ -26,13 +26,37 @@ def request_gene(parameters : tuple):
         
         # Vérifier le statut de la réponse
         if response.status_code == 200:
+            sequence = json.loads(response.text) # convertit la str en dictionnaire
+            liste_start, liste_end, chr, 
+            for match in sequence["mappings"]:
+
+            start_gen = sequence["mappings"][0]["start"]
+            start_arn = transcript_dict[transcript_id][0]
+            end_gen = sequence["mappings"][0]["end"]
+            end_arn = transcript_dict[transcript_id][1]
             # TODO Voir pour diviser le cas où on a plusieurs fois le même transcrit
-            dict_sequences[transcrit_id] = response.text.strip()
+            # dict_sequences[transcrit_id] = response.text.strip()
         else:
             print(f"Failed to retrieve transcript ID: {response.status_code}")
             dict_sequences[transcrit_id] = None
     return dict_sequences
-            
+
+def ConvertCoordAssembly(start : int, end : int, specy : str, chromosome : int, strand : str, assembly1 : str  = "GRCm39", assembly2 : str = "CRCm38"):
+    """
+    Function to convert dna coordinate from one genome assmbly to another one
+    """
+    server = "https://rest.ensembl.org"
+    ext = f"/map/{specy}/{assembly1}/{chromosome}:{start}..{end}:{strand}/{assembly2}?"
+ 
+    r = requests.get(server+ext, headers={ "Content-Type" : "application/json"})
+    
+    if r.status_code == 200:
+        decoded = r.json()
+        print(repr(decoded))
+    else :
+        print(f"Error cannot convert from {assembly1} to {assembly2}")
+        
+
 def get_dna_sequences(transcript_ids_list : list[str] , start_trans :list[int], end_trans : list[int], specy : str = "mouse"):
 
     id = 0
