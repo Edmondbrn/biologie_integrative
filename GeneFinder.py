@@ -12,7 +12,7 @@ chdir(path.dirname(__file__))
 
 class GeneFinder():
 
-    """
+    """ 
     Class to convert RNA coordinates into DNA coordinates
     """
 
@@ -30,7 +30,7 @@ class GeneFinder():
         self.__session = requests.Session()
 
     def _destroy(self):
-        """
+        """ 
         Methode to destroy the object
         """
         del self.__gene_name
@@ -120,7 +120,7 @@ class GeneFinder():
         """
         # self.__url = f"https://rest.ensembl.org/sequence/id/{self.__gene.gene_id}?content-type=text/x-fasta" # normalement renvoie le gène sur le brin codant donc l'ARN correspond à cet output mais à vérifier
         # self.__response = self.__session.get(self.__url)  # Utiliser la session persistante
-        multi_request.get_gene_sequences(liste_id)
+        multi_request.get_gene_sequences(liste_id) 
         if self.__IsStatusOkay():
             self.__fasta_io = StringIO(self.__response.text) # create a StringIO object
             self.__record = SeqIO.read(self.__fasta_io, "fasta") # read the sequence in FASTA format
