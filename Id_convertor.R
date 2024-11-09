@@ -59,6 +59,8 @@ for (file in list.files()){
 for (key in names(results_list)){
     if (length(results_list[[key]]) > 0){
         merged_file = do.call(rbind, results_list[[key]])
-        write.table(merged_file, file = paste0("merged_", key, ".txt"), sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+        write.table(merged_file, file = paste0("merged_", key, ".tsv"), sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
     }
 }
+# suppression des fichiers intermédiaires
+file.remove(list.files(pattern = ".txt"))

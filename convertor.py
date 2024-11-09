@@ -33,4 +33,4 @@ def create_id_dict(file_path : str) -> dict[str, str]:
 path = "id_ncbi.txt"
 dict_id = create_id_dict(path)
 for key in dict_id:
-    create_file(dict_id[key], "output/" + key)
+    create_file(dict_id[key], "output/" + key + ".txt")
