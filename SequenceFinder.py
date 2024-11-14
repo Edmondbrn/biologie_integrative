@@ -168,8 +168,6 @@ class SequenceFinder():
         Method to determine the gap between genomic positions thus to determine 
         if the fixation sequences is between various exons or not
         """
-        # TODO problème d'index entre start et end position il y a un décalage de 1 à chaque calcul de gap (à voir dans le fichier final pour comprendre)
-        # 
         min_pos = 0
         self.__genomic_range_list : list[tuple[int, int]] = []
         for j in range(len(genomic_positions) - 1): # browse all the genomic positions
@@ -181,8 +179,9 @@ class SequenceFinder():
                 gap = genomic_positions[j + 1] - genomic_positions[j]
             if gap == 1 and min_pos == 0:
                 min_pos = genomic_positions[j]
-            elif gap > 1 and min_pos != 0 or j == len(genomic_positions) - 2:
-                self.__genomic_range_list.append((min_pos, genomic_positions[j]))
+            elif gap > 1 and min_pos != 0 or j == len(genomic_positions) - 2: # si on a un gap de plus de 1 ou si on est à la fin de la liste contenant les positions
+                max_pos = genomic_positions[j+1] if j == len(genomic_positions) - 2 else genomic_positions[j]
+                self.__genomic_range_list.append((min_pos, max_pos))
                 min_pos = 0
         return self.__genomic_range_list
             

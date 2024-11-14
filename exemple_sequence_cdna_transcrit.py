@@ -26,12 +26,12 @@ def get_cdna_and_exon_info(transcript_id, species='mouse'):
     print(transcript.exon_intervals)
     
     # Exemple de conversion d'une position chromosomique en position dans l'ARNm épissé
-    chromosomal_position = 13574523
+    chromosomal_position = 139052618
     spliced_position = transcript.spliced_offset(chromosomal_position)
     print(f"Spliced position for chromosomal position {chromosomal_position}: {spliced_position}")
     
     # Exemple de conversion d'une position dans l'ARNm épissé en position chromosomique
-    spliced_position = 477
+    spliced_position = 2155
     genomic_position = spliced_to_genomic(transcript, spliced_position)
     print(f"Genomic position for spliced position {spliced_position}: {genomic_position}")
     
@@ -39,5 +39,5 @@ def get_cdna_and_exon_info(transcript_id, species='mouse'):
     print(transcript.sequence[:100])
 
 # Exemple d'utilisation
-trans_id = "ENSMUST00000191615"  # Remplacez par votre identifiant de transcrit Ensembl
+trans_id = "ENSMUST00000050949"  # Remplacez par votre identifiant de transcrit Ensembl
 get_cdna_and_exon_info(trans_id)
