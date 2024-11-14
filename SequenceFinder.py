@@ -61,6 +61,10 @@ class SequenceFinder():
     def isNone(element):
         return len(element) == 0
     
+    @staticmethod
+    def isRnaCoordNumber(coord):
+        return isinstance(coord, int)
+    
 
     
 
@@ -105,9 +109,8 @@ class SequenceFinder():
         
         end = start + len(sequence)
         return start, end
-    
-    @staticmethod
-    def alignSequences(parameters : list[pb.Database , dict[ tuple[str, int] : str]]) -> dict[ tuple[str, int] : tuple[int, int]]:
+    # @staticmethod
+    def __alignSequences(self, parameters : list[pb.Database , dict[ tuple[str, int] : str]]) -> dict[ tuple[str, int] : tuple[int, int]]:
         """
         Method to align the sequences on the cDNA from pyensembl
         """
@@ -117,35 +120,121 @@ class SequenceFinder():
         result = {}
         for ensembl_id, sequence in zip(ensembl_id, sequences):
             try:
-                transcript = bdd.transcript_by_id(ensembl_id[0])
-            except:
-                result[ensembl_id] = ("unknown_id", "unknown_id")
-            else:
+                transcript : pb.Transcript = bdd.transcript_by_id(ensembl_id[0])
                 cDNA = transcript.sequence
-                start, end = SequenceFinder.align(cDNA, sequence)
-                result[ensembl_id] = (start, end)
+            except:
+                result[ensembl_id] = ("unknown", "unknown"), [("unknown", "unknown")]
+            else :
+                rna_start, rna_end = SequenceFinder.align(cDNA, sequence)
+                if SequenceFinder.isRnaCoordNumber(rna_start) and SequenceFinder.isRnaCoordNumber(rna_end):
+                    self.genomic_coordinate_list = self.__spliced_to_genomic(transcript, range(rna_start, rna_end+1))
+                    result[ensembl_id] = ((rna_start, rna_end), self.genomic_coordinate_list)
+                else:
+                    result[ensembl_id] = ("Not found", "Not found"), [("Not found", "Not found")]
         return result
     
+    def __spliced_to_genomic(self, transcript : pb.Transcript, spliced_positions : list[int]):
+        """
+        Convert a spliced position to a genomic position.
+        take the concerned transcript as argument
+        and a list of spliced position
+        """
+        current_spliced_position = 0
+        exon_number = 0
+        exons = list(transcript.exons)
+        genomic_positions = []
+     
+        for spliced_position in spliced_positions: # browse the list of spliced position
+            if spliced_position == "Not found":
+                genomic_positions.append(None)
+                continue
+            for i in range(exon_number, len(exons)): # browse the exon but we kept the exon number to avoid to browse all the exons each time
+                exon = exons[i]
+                exon_length = exon.end - exon.start + 1
+                if current_spliced_position + exon_length > spliced_position:
+                    offset = spliced_position - current_spliced_position
+                    genomic_positions.append(exon.start + offset)
+                    break
+                else:
+                    current_spliced_position += exon_length
+                    exon_number += 1
+                if exon_number > len(exons):
+                    genomic_positions.append(None)  # if the spliced position is out of range
+        genomic_range = self.__determineGap(genomic_positions)
+        return genomic_range
+
+    def __determineGap(self, genomic_positions : list[int]) -> list[int]:
+        """
+        Method to determine the gap between genomic positions thus to determine 
+        if the fixation sequences is between various exons or not
+        """
+        min_pos = 0
+        self.__genomic_range_list : list[tuple[int, int]] = []
+        for j in range(len(genomic_positions) - 1): # browse all the genomic positions
+            if genomic_positions[j] is None: # if we have None position we kept the information
+                self.__genomic_range_list.append((None, None))
+            elif genomic_positions[j + 1] is None:
+                self.__genomic_range_list.append((genomic_positions[j], None))
+            else:
+                gap = genomic_positions[j + 1] - genomic_positions[j]
+            if gap == 1 and min_pos == 0:
+                min_pos = genomic_positions[j]
+            elif gap > 1 and min_pos != 0 or j == len(genomic_positions) - 2:
+                self.__genomic_range_list.append((min_pos, genomic_positions[j]))
+                min_pos = 0
+        return self.__genomic_range_list
+            
+    def __addRnaCoordinates(self, coord_dict : dict) -> None:
+        """
+        Method to add the coordinates to the DataFrame
+        """
+        start_list = {"start_ensembl" : list()}
+        end_list = {"end_ensembl" : list()}
+        list_id = {"ensembl_id" : list()}
+        for id, coord in coord_dict.items():
+            start_list["start_ensembl"].append(coord[0][0])
+            end_list["end_ensembl"].append(coord[0][1])
+            list_id["ensembl_id"].append(id[0])
+
+        self.__data_prot = self.__data_prot.join(DataFrame(start_list))
+        self.__data_prot = self.__data_prot.join(DataFrame(end_list))
+        self.__data_prot = self.__data_prot.join(DataFrame(list_id))
+        return None
+    
+    def __addGenomicCoordinates(self, coord_list : dict) -> None:
+        """
+        Method to add the genomic coordinates to the DataFrame
+        """
+        start_list = {"start_genomic" : list()}
+        end_list = {"end_genomic" : list()}
+        for coord in coord_list.keys():
+            start_tuple = list()
+            end_tuple = list()
+            for tuple_position in coord_list[coord][1]:
+                print(tuple_position)
+                start_tuple.append(tuple_position[0])
+                end_tuple.append(tuple_position[1])
+            start_list["start_genomic"].append(start_tuple)
+            end_list["end_genomic"].append(end_tuple)
+        self.__data_prot = self.__data_prot.join(DataFrame(start_list))
+        self.__data_prot = self.__data_prot.join(DataFrame(end_list))
+        return None
+
     
     def start(self):
         self.___getFixationSequence()
         # pool = Pool(NB_PROCESS)
-        # réunis les dictionnaires séparés dans la liste générale
-
+        # réunis les dictionnaires séparés dans la liste générale (artefact du multithreading si jamais on veut en faire)
         all_dict = {}
         for element in self.__general_list:
             all_dict.update(element)
 
-        liste = SequenceFinder.alignSequences((self.__bdd, all_dict))
-        start_list = {"start_ensembl" : list()}
-        end_list = {"end_ensembl" : list()}
-        for coord in liste.values():
-            start_list["start_ensembl"].append(coord[0])
-            end_list["end_ensembl"].append(coord[1])
-
-        self.__data_prot = self.__data_prot.join(DataFrame(start_list))
-        self.__data_prot = self.__data_prot.join(DataFrame(end_list))
-        self.__data_prot.to_csv("data_filtered2.tsv", sep = "\t", index = False)
+        __dict_coord = self.__alignSequences((self.__bdd, all_dict))
+        self.__addRnaCoordinates(__dict_coord)
+        print(__dict_coord.values())
+        self.__addGenomicCoordinates(__dict_coord)
+        self.__data_prot.to_csv("data_filteredfinal.tsv", sep = "\t", index = False)
+        
      
         
 

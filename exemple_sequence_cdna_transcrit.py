@@ -7,7 +7,7 @@ def spliced_to_genomic(transcript, spliced_position):
     Convert a spliced position to a genomic position.
     """
     current_spliced_position = 0
-    for exon in transcript.exons:
+    for exon in list(transcript.exons):
         exon_length = exon.end - exon.start + 1
         if current_spliced_position + exon_length > spliced_position:
             offset = spliced_position - current_spliced_position
@@ -26,7 +26,7 @@ def get_cdna_and_exon_info(transcript_id, species='mouse'):
     print(transcript.exon_intervals)
     
     # Exemple de conversion d'une position chromosomique en position dans l'ARNm épissé
-    chromosomal_position = 87678208
+    chromosomal_position = 13574523
     spliced_position = transcript.spliced_offset(chromosomal_position)
     print(f"Spliced position for chromosomal position {chromosomal_position}: {spliced_position}")
     
@@ -39,5 +39,5 @@ def get_cdna_and_exon_info(transcript_id, species='mouse'):
     print(transcript.sequence[:100])
 
 # Exemple d'utilisation
-trans_id = "ENSMUST00000024967"  # Remplacez par votre identifiant de transcrit Ensembl
+trans_id = "ENSMUST00000191615"  # Remplacez par votre identifiant de transcrit Ensembl
 get_cdna_and_exon_info(trans_id)
