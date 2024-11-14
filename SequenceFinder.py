@@ -2,8 +2,6 @@ import pyensembl as pb
 from pandas import read_csv, DataFrame
 import os
 import re
-from multiprocessing import Pool
-import time
 
 NB_PROCESS = 4
 ENSEMBL_NAME = "ensembl_transcript_id"
