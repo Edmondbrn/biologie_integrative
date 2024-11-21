@@ -1,7 +1,7 @@
 import pyensembl as pb
 from pandas import read_csv, DataFrame
 import os
-import re
+import regex
 
 NB_PROCESS = 4
 ENSEMBL_NAME = "ensembl_transcript_id"
@@ -84,6 +84,7 @@ class SequenceFinder():
                 if j >= size_ensembl_id: # if we reach the end of the list of ensembl ID (avoid out of range if the division is not absolute)
                     break
                 dict_tmp[(ensembl_id[j], j)] = fixation_sequence[j]
+                # On a un dictionnaire avec en clé les identifiants Ensembl et en valeur les séquences de fixation
             self.__general_list.append(dict_tmp)
         return None
     
@@ -92,11 +93,12 @@ class SequenceFinder():
         """
         Method to align the sequence on the cDNA
         """
-        matches = list(re.finditer(sequence, cDNA))
+        pattern = f"({sequence}){{e<=0}}"
+        matches = list(regex.finditer(pattern, cDNA))
         
-        if SequenceFinder.isNone(matches):
+        if not matches:
             return ("Not found", "Not found")
-        elif SequenceFinder.isUnique(matches):
+        elif len(matches) == 1:
             start = matches[0].start()
         else:
             print("Multiple start found")
@@ -107,7 +109,7 @@ class SequenceFinder():
         
         end = start + len(sequence)
         return start, end
-    # @staticmethod
+
     def __alignSequences(self, parameters : list[pb.Database , dict[ tuple[str, int] : str]]) -> dict[ tuple[str, int] : tuple[int, int]]:
         """
         Method to align the sequences on the cDNA from pyensembl
@@ -230,9 +232,8 @@ class SequenceFinder():
 
         __dict_coord = self.__alignSequences((self.__bdd, all_dict))
         self.__addRnaCoordinates(__dict_coord)
-        print(__dict_coord.values())
         self.__addGenomicCoordinates(__dict_coord)
-        self.__data_prot.to_csv("data_filteredfinal.tsv", sep = "\t", index = False)
+        self.__data_prot.to_csv("data_filteredfinaltest.tsv", sep = "\t", index = False)
         
      
         
@@ -240,7 +241,7 @@ class SequenceFinder():
 
 
 
-
-df_prot = read_csv("data_filtered.tsv", sep = "\t", header = 0)
-app = SequenceFinder(df_prot)
-app.start()
+if __name__ == "__main__":
+    df_prot = read_csv("data_filtered.tsv", sep = "\t", header = 0)
+    app = SequenceFinder(df_prot)
+    app.start()
