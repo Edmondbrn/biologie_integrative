@@ -122,15 +122,16 @@ class SequenceFinder():
             try:
                 transcript : pb.Transcript = bdd.transcript_by_id(ensembl_id[0])
                 cDNA = transcript.sequence
+                gene = transcript.gene_id
             except:
-                result[ensembl_id] = ("unknown", "unknown"), [("unknown", "unknown")]
+                result[ensembl_id] = ("unknown", "unknown"), [("unknown", "unknown")], 'unknown'
             else :
                 rna_start, rna_end = SequenceFinder.align(cDNA, sequence)
                 if SequenceFinder.isRnaCoordNumber(rna_start) and SequenceFinder.isRnaCoordNumber(rna_end):
                     self.genomic_coordinate_list = self.__spliced_to_genomic(transcript, range(rna_start, rna_end+1))
-                    result[ensembl_id] = ((rna_start, rna_end), self.genomic_coordinate_list)
+                    result[ensembl_id] = ((rna_start, rna_end), self.genomic_coordinate_list, gene)
                 else:
-                    result[ensembl_id] = ("Not found", "Not found"), [("Not found", "Not found")]
+                    result[ensembl_id] = ("Not found", "Not found"), [("Not found", "Not found")], "Not found"
         return result
     
     def __spliced_to_genomic(self, transcript : pb.Transcript, spliced_positions : list[int]):
@@ -192,14 +193,17 @@ class SequenceFinder():
         start_list = {"start_ensembl" : list()}
         end_list = {"end_ensembl" : list()}
         list_id = {"ensembl_id" : list()}
+        gene_list_id = {"geneensembl" : list()}
         for id, coord in coord_dict.items():
             start_list["start_ensembl"].append(coord[0][0])
             end_list["end_ensembl"].append(coord[0][1])
             list_id["ensembl_id"].append(id[0])
+            gene_list_id["geneensembl"].append(coord[2])
 
         self.__data_prot = self.__data_prot.join(DataFrame(start_list))
         self.__data_prot = self.__data_prot.join(DataFrame(end_list))
         self.__data_prot = self.__data_prot.join(DataFrame(list_id))
+        self.__data_prot = self.__data_prot.join(DataFrame(gene_list_id))
         return None
     
     def __addGenomicCoordinates(self, coord_list : dict) -> None:
@@ -212,7 +216,6 @@ class SequenceFinder():
             start_tuple = list()
             end_tuple = list()
             for tuple_position in coord_list[coord][1]:
-                print(tuple_position)
                 start_tuple.append(tuple_position[0])
                 end_tuple.append(tuple_position[1])
             start_list["start_genomic"].append(start_tuple)

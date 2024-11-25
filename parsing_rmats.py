@@ -54,14 +54,15 @@ def filterRI(data : pd.DataFrame, splice_type : str) -> None:
     data.to_csv(f"filteredRmats/{splice_type}_filtered.csv", sep = "\t")
 
 def filterSE(data : pd.DataFrame, splice_type : str):
-    # Implémentez la logique de filtrage pour SE
-    pass
+    data = data[["GeneID", "chr", "strand","exonStart_0base", "exonEnd", "upstreamEE", "downstreamES"]]
+    data.columns = ["GeneID", "chr", "strand", "SEstart", "SeEnd", "upstreamEnd", "DownstreamStart"]
+    data.to_csv(f"filteredRmats/{splice_type}_filtered.csv", sep = "\t")
 
 def filterMXE(data : pd.DataFrame, splice_type : str) -> None:
     # Implémentez la logique de filtrage pour MXE+
     data = data[["GeneID", "chr", "strand", "1stExonStart_0base", "1stExonEnd", "2ndExonStart_0base", "2ndExonEnd", "upstreamEE", "downstreamES"]]
     data.columns = ["GeneID", "chr", "strand", "1stExonStart", "1stExonEnd", "2ndExonStart", "2ndExonEnd", "upstreamEE", "downstreamES"]
-    data.to_csv(f"filteredRmats/_filtered.csv", sep = "\t")
+    data.to_csv(f"filteredRmats/{splice_type}_filtered.csv", sep = "\t")
     pass
 
 
@@ -78,9 +79,9 @@ def chooseParsing(rmats_dict):
         "RI_+": filterRI,
         "RI_-": filterRI,
         "MXE_+": filterMXE,
-        "MXE_-": filterMXE #,
-        # "SE_+": filterSE,
-        # "SE_-": filterSE,
+        "MXE_-": filterMXE,
+        "SE_+": filterSE,
+        "SE_-": filterSE,
     }
     if not os.path.isdir("filteredRmats"):
         os.mkdir("filteredRmats")
@@ -96,4 +97,3 @@ if __name__ == "__main__":
     liste_imp = getRmatsFiles("rmats_post")
     rmats_dico = filterStrand(liste_imp)
     chooseParsing(rmats_dico)
-
