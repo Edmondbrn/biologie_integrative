@@ -198,7 +198,7 @@ class SequenceFinder():
             start_list["start_ensembl"].append(coord[0][0])
             end_list["end_ensembl"].append(coord[0][1])
             list_id["ensembl_id"].append(id[0])
-            gene_list_id["geneensembl"].append(coord[2])
+            gene_list_id["GeneID"].append(coord[2])
 
         self.__data_prot = self.__data_prot.join(DataFrame(start_list))
         self.__data_prot = self.__data_prot.join(DataFrame(end_list))

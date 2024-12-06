@@ -1,4 +1,4 @@
-gene_name	refseq_complete	refseq	start	end	seq	ensembl_transcript_id	start_ensembl	end_ensembl	ensembl_id	geneensembl	start_genomic	end_genomic
+gene_name	refseq_complete	refseq	start	end	seq	ensembl_transcript_id	start_ensembl	end_ensembl	ensembl_id	GeneID	start_genomic	end_genomic
 Msh2	NM_008628.2	NM_008628	2315	2334	ATTTGGGTTAGCATGGGCT	ENSMUST00000024967	2542	2561	ENSMUST00000024967	ENSMUSG00000024151	[87719354]	[87719373]
 Mmp7	NM_010810.5	NM_010810	603	622	GGCGGAGATGCTCACTTTG	ENSMUST00000018767	603	622	ENSMUST00000018767	ENSMUSG00000018623	[7696121]	[7696140]
 Jakmip1	XM_011240786.2	XM_011240786	226	245	CCTCCACGGCCAGAGGAGG	ENSMUST00000121010	Not found	Not found	ENSMUST00000121010	Not found	['Not found']	['Not found']
