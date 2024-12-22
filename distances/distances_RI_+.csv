@@ -1,4 +1,4 @@
-prot_start_splice_start	prot_start_splice_end	prot_end_splice_start	prot_end_splice_end	transcript_ID	prot_seq
+prot_start_RiStart	prot_start_RiEnd	prot_end_RiStart	prot_end_RiEnd	transcript_ID	prot_seq
 -6253	-7405	8	-1144	ENSMUST00000118557	GCGTTCATTCAGATACTAT
 5164	4561	5183	4580	ENSMUST00000004326	CTTGAGAGCAAGAACCACC
 3867	3411	3886	3430	ENSMUST00000004326	CTTGAGAGCAAGAACCACC

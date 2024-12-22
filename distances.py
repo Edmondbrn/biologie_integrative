@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import ast
+import time
 from numba import njit
 
 os.chdir(os.path.dirname(__file__))
@@ -50,46 +51,53 @@ class Distances():
         return df.shape[0] == 0
 
 
-    def __CreateDistanceFile(this, distance : dict, splice_type : str):
+    def __CreateDistanceFile(this, df : pd.DataFrame, splice_type : str):
         """
         Method to create a csv file containing the distances
         """
         if os.path.exists("distances") == False:
             os.mkdir("distances")
-        df = pd.DataFrame(distance)
         df.to_csv(f"distances/distances_{splice_type}.csv", index = False, sep = "\t")
 
-    @njit
+    @staticmethod
+    @njit(fastmath = True)
     def __compute_distances(start_genomic_first, end_genomic_last, short_splice, share_splice, long_splice):
         """
-        Calcule les distances pour un enregistrement. 
-        Les arguments sont des entiers qui représentent la première coordonnée 
-        d'une liste (start_genomic) et la dernière coordonnée (end_genomic), 
-        ainsi que short_splice, share_splice et long_splice.
+        Calcule les distances pour un couple site de fixation de la protéine / site d'épissage alternatif. 
+        les arguments sont les différents coordonnées génomiques des acteurs
+        Spécifique pour A5SS et A3SS
         """
         distances = np.zeros(8, dtype=np.int64)  # 8 distances
-        # prot_start_short_splice_start
         distances[0] = start_genomic_first - short_splice
-        # prot_start_short_splice_end
         distances[1] = start_genomic_first - share_splice
-        # prot_end_short_splice_start
         distances[2] = end_genomic_last - short_splice
-        # prot_end_short_splice_end
         distances[3] = end_genomic_last - share_splice
-        # prot_start_long_splice_start
         distances[4] = start_genomic_first - long_splice
-        # prot_start_long_splice_end
         distances[5] = start_genomic_first - share_splice
-        # prot_end_long_splice_start
         distances[6] = end_genomic_last - long_splice
-        # prot_end_long_splice_end
         distances[7] = end_genomic_last - share_splice
+        return distances
+    
+    @staticmethod
+    @njit(fastmath = True)
+    def __compute_distances_RI(start_genomic_first, end_genomic_last, RiStart, RiEnd):
+        """
+        Calcule les distances pour un couple site de fixation de la protéine / site d'épissage alternatif. 
+        les arguments sont les différents coordonnées génomiques des acteurs
+        Spécifique pour la rétention d'intron
+        """
+        distances = np.zeros(4, dtype=np.int64)  # 4 distances
+
+        distances[0] = start_genomic_first - RiStart
+        distances[1] = start_genomic_first - RiEnd
+        distances[2] = end_genomic_last - RiStart
+        distances[3] = end_genomic_last - RiEnd
         return distances
 
     def distanceA5SS(this, splice_type: str = "A5SS_+"):
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "shortSplice", "longSplice", "shareSplice"]]
         results = []  # On stockera ici toutes les lignes calculées
-        
+        debut = time.time()
         for i in range(this.__data_prot.shape[0]):
             splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
             if this.__IsDataFrameNull(splicing_same_gene):
@@ -104,7 +112,7 @@ class Distances():
                 long_sp = splicing_same_gene.iloc[j]["longSplice"]
                 share_sp = splicing_same_gene.iloc[j]["shareSplice"]
                 
-                dist_array = this.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp)
+                dist_array = Distances.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp)
                 
                 # Construire un dict pour tout remettre dans un DataFrame final
                 row = {
@@ -114,97 +122,86 @@ class Distances():
                     "prot_end_short_splice_end":     dist_array[3],
                     "prot_start_long_splice_start":  dist_array[4],
                     "prot_start_long_splice_end":    dist_array[5],
+                    "prot_end_long_splice_start":    dist_array[7],
+                    "prot_end_long_splice_end":      dist_array[6],
+                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
+                    "prot_seq": this.__data_prot.loc[i, "seq"]
+                }
+                results.append(row)
+        print(time.time() - debut)
+        # Convertir la liste de dicts en DataFrame
+        df = pd.DataFrame(results)
+        this.__CreateDistanceFile(df, splice_type)  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
+
+                 
+    def distanceA3SS(this, splice_type : str = "A3SS_+") :
+        splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "shortSplice", "longSplice", "shareSplice"]]
+        results = []  # On stockera ici toutes les lignes calculées
+        debut = time.time()
+        for i in range(this.__data_prot.shape[0]):
+            splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
+            if this.__IsDataFrameNull(splicing_same_gene):
+                continue
+            # Récupération des valeurs start/end (première et dernière coordonnée)
+            start_first = this.__data_prot.loc[i, "start_genomic"][0]
+            end_last = this.__data_prot.loc[i, "end_genomic"][-1]
+            
+            for j in range(splicing_same_gene.shape[0]):
+                short_sp = splicing_same_gene.iloc[j]["shortSplice"]
+                long_sp = splicing_same_gene.iloc[j]["longSplice"]
+                share_sp = splicing_same_gene.iloc[j]["shareSplice"]
+                dist_array = Distances.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp)
+                # Construire un dict pour tout remettre dans un DataFrame final
+                row = {
+                    "prot_start_short_splice_start": dist_array[1],
+                    "prot_start_short_splice_end":   dist_array[0],
+                    "prot_end_short_splice_start":   dist_array[3],
+                    "prot_end_short_splice_end":     dist_array[2],
+                    "prot_start_long_splice_start":  dist_array[5],
+                    "prot_start_long_splice_end":    dist_array[4],
                     "prot_end_long_splice_start":    dist_array[6],
                     "prot_end_long_splice_end":      dist_array[7],
                     "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
                     "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
                 results.append(row)
-        
+        print(time.time() - debut)
         # Convertir la liste de dicts en DataFrame
         df = pd.DataFrame(results)
         this.__CreateDistanceFile(df, splice_type)  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
 
-    
-    # def distanceA5SS(this, splice_type : str = "A5SS_+"):
-    #     splicing_coordinates : pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "shortSplice", "longSplice", "shareSplice"]] #récupère les coordonnées des sites de splicing
-    #     # Browse all the protein fixation sites
-    #     for i in range(this.__data_prot.shape[0]):
-    #         # Select the splicing sites of the same gene to avoid heavy computationnal loss
-    #         splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
-    #         if this.__IsDataFrameNull(splicing_same_gene):
-    #             continue
-    #         # Browse all the splicing sites of the same gene
-    #         distance = {"prot_start_short_splice_start" : [], "prot_start_short_splice_end" : [], "prot_end_short_splice_start" : [], "prot_end_short_splice_end" : [],
-    #                     "prot_start_long_splice_start" : [], "prot_start_long_splice_end" : [], "prot_end_long_splice_start" : [], "prot_end_long_splice_end" : [],
-    #                     "transcript_ID" : [], "prot_seq" : []}
-    #         for j in range(splicing_same_gene.shape[0]):
-    #             # Compute the distance between the protein fixation site and the splicing site
-    #             distance["prot_start_short_splice_start"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["shortSplice"])
-    #             distance["prot_start_short_splice_end"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["shareSplice"])
-    #             distance["prot_end_short_splice_start"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["shortSplice"])
-    #             distance["prot_end_short_splice_end"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["shareSplice"])
-    #             distance["prot_start_long_splice_start"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["longSplice"])
-    #             distance["prot_start_long_splice_end"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["shareSplice"])
-    #             distance["prot_end_long_splice_start"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["longSplice"])
-    #             distance["prot_end_long_splice_end"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["shareSplice"])
-    #             distance["transcript_ID"].append(this.__data_prot.loc[i, "ensembl_id"])
-    #             distance["prot_seq"].append(this.__data_prot.loc[i, "seq"])
-    #     this.__CreateDistanceFile(distance, splice_type)
-                
-                
-    def distanceA3SS(this, splice_type : str = "A3SS_+") :
-            splicing_coordinates : pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "shortSplice", "longSplice", "shareSplice"]] #récupère les coordonnées des sites de splicing
-            # Browse all the protein fixation sites
-            for i in range(this.__data_prot.shape[0]):
-                # Select the splicing sites of the same gene to avoid heavy computationnal loss
-                splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
-                if this.__IsDataFrameNull(splicing_same_gene):
-                    continue
-                # Browse all the splicing sites of the same gene
-                distance = {"prot_start_short_splice_start" : [], "prot_start_short_splice_end" : [], "prot_end_short_splice_start" : [], "prot_end_short_splice_end" : [],
-                        "prot_start_long_splice_start" : [], "prot_start_long_splice_end" : [], "prot_end_long_splice_start" : [], "prot_end_long_splice_end" : [],
-                        "transcript_ID" : [], "prot_seq" : []}
-                
-                for j in range(splicing_same_gene.shape[0]):
-                # Compute the distance between the protein fixation site and the splicing site
-                # "shortSplice", "longSplice", "shareSplice"
-                # Compute the distance between the protein fixation site and the splicing site
-                    distance["prot_start_short_splice_start"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["shareSplice"])
-                    distance["prot_start_short_splice_end"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["shortSplice"])
-                    distance["prot_end_short_splice_start"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["shareSplice"])
-                    distance["prot_end_short_splice_end"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["shortSplice"])
-                    distance["prot_start_long_splice_start"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["shareSplice"])
-                    distance["prot_start_long_splice_end"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["longSplice"])
-                    distance["prot_end_long_splice_start"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["shareSplice"])
-                    distance["prot_end_long_splice_end"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["longSplice"])
-                    distance["transcript_ID"].append(this.__data_prot.loc[i, "ensembl_id"])
-                    distance["prot_seq"].append(this.__data_prot.loc[i, "seq"])
-            this.__CreateDistanceFile(distance, splice_type)
+    def distanceRI(this, splice_type: str = "RI_+") -> None:
+        """
+        Fonction pour obtenir les coordonnées des sites de splicing et les distances avec les sites de fixation des protéines
+        splice_type : type de splicing
 
-    def distanceRI(this, splice_type: str = "RI_+") -> int:
+        """
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "chr", "strand", "RiStart", "RiEnd"]]  # récupère les coordonnées des sites de splicing
-        distance = {
-            "prot_start_splice_start": [],
-            "prot_start_splice_end": [],
-            "prot_end_splice_start": [],
-            "prot_end_splice_end": [],
-            "transcript_ID" : [], "prot_seq" : []
-        }
+        results = []
+        
         # Browse all the protein fixation sites
         for i in range(this.__data_prot.shape[0]):
             # Select the splicing sites of the same gene to avoid heavy computational loss
             splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
             if this.__IsDataFrameNull(splicing_same_gene):
                 continue
+            start_first = this.__data_prot.loc[i, "start_genomic"][0]
+            end_last = this.__data_prot.loc[i, "end_genomic"][-1]
             for j in range(splicing_same_gene.shape[0]):
-                distance["prot_start_splice_start"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["RiStart"])
-                distance["prot_start_splice_end"].append(this.__data_prot.loc[i, "start_genomic"][0] - splicing_same_gene.iloc[j]["RiEnd"])
-                distance["prot_end_splice_start"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["RiStart"])
-                distance["prot_end_splice_end"].append(this.__data_prot.loc[i, "end_genomic"][-1] - splicing_same_gene.iloc[j]["RiEnd"])
-                distance["transcript_ID"].append(this.__data_prot.loc[i, "ensembl_id"])
-                distance["prot_seq"].append(this.__data_prot.loc[i, "seq"])
-        this.__CreateDistanceFile(distance, splice_type)
+                RiStart = splicing_same_gene.iloc[j]["RiStart"]
+                RiEnd = splicing_same_gene.iloc[j]["RiEnd"]
+                dist_array = Distances.__compute_distances_RI(start_first, end_last, RiStart, RiEnd)
+                row = {
+                    "prot_start_RiStart": dist_array[0],
+                    "prot_start_RiEnd": dist_array[1],
+                    "prot_end_RiStart": dist_array[2],
+                    "prot_end_RiEnd": dist_array[3],
+                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
+                    "prot_seq": this.__data_prot.loc[i, "seq"]
+                }
+                results.append(row)
+        df = pd.DataFrame(results)
+        this.__CreateDistanceFile(df, splice_type)
         
 
 
