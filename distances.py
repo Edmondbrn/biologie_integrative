@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import ast
-import time
+import pyensembl as pb
 from numba import njit
 
 os.chdir(os.path.dirname(__file__))
@@ -93,11 +93,26 @@ class Distances():
         distances[2] = end_genomic_last - RiStart
         distances[3] = end_genomic_last - RiEnd
         return distances
+    
+    @staticmethod
+    @njit(fastmath = True)
+    def __compute_distances_SE(start_genomic_first, end_genomic_last, upstreamEnd, DownstreamStart):
+        """
+        Calcule les distances pour un couple site de fixation de la protéine / site d'épissage alternatif.
+        les arguments sont les différents coordonnées génomiques des acteurs
+        Spécifique pour l'exon sauté (skipping exon)
+        """
+        distances = np.zeros(4, dtype=np.int64)
+        distances[0] = start_genomic_first - upstreamEnd
+        distances[1] = start_genomic_first - DownstreamStart
+        distances[2] = end_genomic_last - upstreamEnd
+        distances[3] = end_genomic_last - DownstreamStart
+        return distances
+
 
     def distanceA5SS(this, splice_type: str = "A5SS_+"):
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "shortSplice", "longSplice", "shareSplice"]]
         results = []  # On stockera ici toutes les lignes calculées
-        debut = time.time()
         for i in range(this.__data_prot.shape[0]):
             splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
             if this.__IsDataFrameNull(splicing_same_gene):
@@ -128,7 +143,6 @@ class Distances():
                     "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
                 results.append(row)
-        print(time.time() - debut)
         # Convertir la liste de dicts en DataFrame
         df = pd.DataFrame(results)
         this.__CreateDistanceFile(df, splice_type)  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
@@ -137,7 +151,6 @@ class Distances():
     def distanceA3SS(this, splice_type : str = "A3SS_+") :
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "shortSplice", "longSplice", "shareSplice"]]
         results = []  # On stockera ici toutes les lignes calculées
-        debut = time.time()
         for i in range(this.__data_prot.shape[0]):
             splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
             if this.__IsDataFrameNull(splicing_same_gene):
@@ -165,7 +178,6 @@ class Distances():
                     "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
                 results.append(row)
-        print(time.time() - debut)
         # Convertir la liste de dicts en DataFrame
         df = pd.DataFrame(results)
         this.__CreateDistanceFile(df, splice_type)  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
@@ -178,7 +190,6 @@ class Distances():
         """
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "chr", "strand", "RiStart", "RiEnd"]]  # récupère les coordonnées des sites de splicing
         results = []
-        
         # Browse all the protein fixation sites
         for i in range(this.__data_prot.shape[0]):
             # Select the splicing sites of the same gene to avoid heavy computational loss
@@ -203,10 +214,105 @@ class Distances():
         df = pd.DataFrame(results)
         this.__CreateDistanceFile(df, splice_type)
         
+    def distanceSE(this, splice_type: str = "SE") -> None:
+        """
+        Fonction pour obtenir les coordonnées des sites de splicing et les distances avec les sites de fixation des protéines
+        splice_type : type de splicing
+        """
+        splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "chr", "strand", "upstreamEnd", "DownstreamStart"]]
+        results = []
+        # Browse all the protein fixation sites
+        for i in range(this.__data_prot.shape[0]):
+            splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
+            if this.__IsDataFrameNull(splicing_same_gene):
+                continue
+            start_first = this.__data_prot.loc[i, "start_genomic"][0] # extrait les coordonnées de fixation de la protéine
+            end_last = this.__data_prot.loc[i, "end_genomic"][-1]
+            for j in range(splicing_same_gene.shape[0]):
+                upstreamEnd = splicing_same_gene.iloc[j]["upstreamEnd"]
+                DownstreamStart = splicing_same_gene.iloc[j]["DownstreamStart"]
+                dist_array = Distances.__compute_distances_SE(start_first, end_last, upstreamEnd, DownstreamStart)
+                row = {
+                    "prot_start_upstreamEnd": dist_array[0],
+                    "prot_start_DownstreamStart": dist_array[1],
+                    "prot_end_upstreamEnd": dist_array[2],
+                    "prot_end_DownstreamStart": dist_array[3],
+                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
+                    "prot_seq": this.__data_prot.loc[i, "seq"]
+                }
+                results.append(row)
+        df = pd.DataFrame(results)
+        this.__CreateDistanceFile(df, splice_type)
 
+
+    @staticmethod
+    @njit(fastmath = True)
+    def __compute_distances_MXE(start_genomic_first, end_genomic_last, FirstExonStart, FirstExonEnd, SecondExonStart, SecondExonEnd, upstreamEE, downstreamES):
+        """
+        Calcule les distances pour un couple site de fixation de la protéine / site d'épissage alternatif.
+        les arguments sont les différents coordonnées génomiques des acteurs
+        Spécifique pour mutually exclusive exon
+        """
+        distances = np.zeros(12, dtype=np.int64)  # 16 distances
+        distances[0] = start_genomic_first - upstreamEE
+        distances[1] = start_genomic_first - FirstExonStart
+        distances[2] = start_genomic_first - FirstExonEnd
+        distances[3] = start_genomic_first - downstreamES
+        distances[4] = end_genomic_last - upstreamEE
+        distances[5] = end_genomic_last - FirstExonStart
+        distances[6] = end_genomic_last - FirstExonEnd
+        distances[7] = end_genomic_last - downstreamES
+        distances[8] = start_genomic_first - SecondExonStart
+        distances[9] = start_genomic_first - SecondExonEnd
+        distances[10] = end_genomic_last - SecondExonStart
+        distances[11] = end_genomic_last - SecondExonEnd
+        return distances
+
+
+    def distanceMXE(this, splice_type: str = "MSE") -> None:
+            """
+            Fonction pour obtenir les coordonnées des sites de splicing et les distances avec les sites de fixation des protéines
+            splice_type : type de splicing
+            """
+            splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "chr", "strand", "1stExonStart", "1stExonEnd", "2ndExonStart", "2ndExonEnd", "upstreamEE", "downstreamES"]]
+            results = []
+            # Browse all the protein fixation sites
+            for i in range(this.__data_prot.shape[0]):
+                splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
+                if this.__IsDataFrameNull(splicing_same_gene):
+                    continue
+                start_first = this.__data_prot.loc[i, "start_genomic"][0] # extrait les coordonnées de fixation de la protéine
+                end_last = this.__data_prot.loc[i, "end_genomic"][-1]
+                for j in range(splicing_same_gene.shape[0]):
+                    FirstExonStart = splicing_same_gene.iloc[j]["1stExonStart"]
+                    FirstExonEnd = splicing_same_gene.iloc[j]["1stExonEnd"]
+                    SecondExonStart = splicing_same_gene.iloc[j]["2ndExonStart"]
+                    SecondExonEnd = splicing_same_gene.iloc[j]["2ndExonEnd"]
+                    upstreamEE = splicing_same_gene.iloc[j]["upstreamEE"]
+                    downstreamES = splicing_same_gene.iloc[j]["downstreamES"]
+
+                    dist_array = Distances.__compute_distances_MXE(start_first, end_last, FirstExonStart, FirstExonEnd, SecondExonStart, SecondExonEnd, upstreamEE, downstreamES)
+                    row = {
+                        "prot_start_upstreamEE": dist_array[0],
+                        "prot_start_FirstExonStart": dist_array[1],
+                        "prot_start_FirstExonEnd": dist_array[2],
+                        "prot_start_downstreamES": dist_array[3],
+                        "prot_end_upstreamEE": dist_array[4],
+                        "prot_end_FirstExonStart": dist_array[5],
+                        "prot_end_FirstExonEnd": dist_array[6],
+                        "prot_end_downstreamES": dist_array[7],
+                        "prot_start_SecondExonStart": dist_array[8],
+                        "prot_start_SecondExonEnd": dist_array[9],
+                        "prot_end_SecondExonStart": dist_array[10],
+                        "prot_end_SecondExonEnd": dist_array[11],
+                        "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
+                        "prot_seq": this.__data_prot.loc[i, "seq"]
+                    }
+                    results.append(row)
+            df = pd.DataFrame(results)
+            this.__CreateDistanceFile(df, splice_type)
 
     def ComputeDistance(this, splice_type : str = ""):
-        
         
         distance_calculator = {
             "A5SS_+": this.distanceA5SS,
@@ -214,9 +320,11 @@ class Distances():
             "A3SS_+": this.distanceA3SS,
             "A3SS_-": this.distanceA5SS,
             "RI_-": this.distanceRI ,
-            "RI_+": this.distanceRI #,
-            # "MXE": this.distanceMXE,
-            # "SE": this.distanceSE,
+            "RI_+": this.distanceRI ,
+            "SE_-": this.distanceSE ,
+            "SE_+": this.distanceSE ,
+            "MXE_-": this.distanceMXE,
+            "MXE_+": this.distanceMXE,
             }
 
         return distance_calculator[splice_type](splice_type)
@@ -233,7 +341,7 @@ class Distances():
 
 if __name__ == "__main__":
     dist = Distances()
-    splice_types = ["A5SS_+", "A5SS_-", "A3SS_+", "A3SS_-", "RI_+", "RI_-"]
+    splice_types = ["A5SS_+", "A5SS_-", "A3SS_+", "A3SS_-", "RI_+", "RI_-", "SE_-", "SE_+", "MXE_-", "MXE_+"]
     for splice_type in splice_types:
         dist.start(path_prot = "data_filteredFMRP.tsv", path_splicing = "filteredRmats", splice_type = splice_type)
         print(f"Distances for {splice_type} computed")

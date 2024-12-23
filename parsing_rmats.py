@@ -55,7 +55,7 @@ def filterRI(data : pd.DataFrame, splice_type : str) -> None:
 
 def filterSE(data : pd.DataFrame, splice_type : str):
     data = data[["GeneID", "chr", "strand","exonStart_0base", "exonEnd", "upstreamEE", "downstreamES"]]
-    data.columns = ["GeneID", "chr", "strand", "SEstart", "SeEnd", "upstreamEnd", "DownstreamStart"]
+    data.columns = ["GeneID", "chr", "strand", "SeStart", "SeEnd", "upstreamEnd", "DownstreamStart"]
     data.to_csv(f"filteredRmats/{splice_type}_filtered.csv", sep = "\t")
 
 def filterMXE(data : pd.DataFrame, splice_type : str) -> None:
