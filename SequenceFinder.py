@@ -236,7 +236,7 @@ class SequenceFinder():
         __dict_coord = self.__alignSequences((self.__bdd, all_dict))
         self.__addRnaCoordinates(__dict_coord)
         self.__addGenomicCoordinates(__dict_coord)
-        self.__data_prot.to_csv("data_filteredfinaltest.tsv", sep = "\t", index = False)
+        self.__data_prot.to_csv("data_filteredfinal.tsv", sep = "\t", index = False)
         
      
         
