@@ -5,6 +5,7 @@ import ast
 import pyensembl as pb
 from numba import njit
 import pyensembl as pb
+from distances_utils import convert_dna_to_rna
 
 os.chdir(os.path.dirname(__file__))
 
@@ -14,13 +15,11 @@ class Distances():
     This class is for computing distances between splicing sites and protein fixation site on mRNA
     """
 
-    __bdd = None  # Déclaration de la variable de classe
 
-    def __init__(self, ensembl_release: int = 102, specy: str = "mus_musculus"):
-        self.__data_prot: pd.DataFrame = pd.DataFrame()
-        self.__data_splicing: dict[str, pd.DataFrame] = dict()
-        if Distances.__bdd is None:
-            Distances.__bdd = pb.EnsemblRelease(release=ensembl_release, species=specy)
+    def __init__(this, ensembl_release: int = 102, specy: str = "mus_musculus"):
+        this.__data_prot: pd.DataFrame = pd.DataFrame()
+        this.__data_splicing: dict[str, pd.DataFrame] = dict()
+        this.__bdd = pb.EnsemblRelease(release = ensembl_release, species = specy)  # Déclaration de la variable de classe
 
 
     def _LoadDataProt(this, file_name : str, sep : str = "\t") -> pd.DataFrame:
@@ -59,150 +58,82 @@ class Distances():
         """
         Method to create a csv file containing the distances
         """
-        if os.path.exists("distances") == False:
-            os.mkdir("distances")
-        df.to_csv(f"distances/distances_{type}_{splice_type}.csv", index = False, sep = "\t")
+        if os.path.exists("distances2") == False:
+            os.mkdir("distances2")
+        df.to_csv(f"distances2/distances_{type}_{splice_type}.csv", index = False, sep = "\t")
 
     @staticmethod
-    def __IsBothBetween(start_coordinate : int, end_coordinate : int, exon_pos : list) -> bool:
-        """
-        Method to check if two positions are between the same exon
-        start_coordinate : position that will be the reference in the computing
-        end_coordinate : position that will be the end of the computing
-        exon_pos : list of the exon coordinates
-        output : boolean
-        """
-        return (start_coordinate >= exon_pos[0] and start_coordinate <= exon_pos[1]) and (end_coordinate >= exon_pos[0] and end_coordinate <= exon_pos[1])
-
-    @staticmethod
-    def __IsOnlyOneBetween(start_coordinate : int, end_coordinate : int, exon_pos : list) -> bool:
-        """
-        Method to check if only one position is between the same exon
-        start_coordinate : position that will be the reference in the computing
-        end_coordinate : position that will be the end of the computing
-        exon_pos : list of the exon coordinates
-        output : boolean
-        """
-        if start_coordinate >= exon_pos[0] and start_coordinate <= exon_pos[1]:
-            return (True, end_coordinate)
-        elif end_coordinate >= exon_pos[0] and end_coordinate <= exon_pos[1]:
-            return (True, start_coordinate)
-        else:
-            return (False, None)
-
-    @staticmethod
-    def __IsInExon(coordinate : int, exon_pos : list) -> bool:
-        """
-        Metho to test if a single position is in an exon
-        start_coordinate : position that will be the reference in the computing
-        exon_pos : list of the exon coordinates
-        output : boolean
-        """
-        return coordinate >= exon_pos[0] and coordinate <= exon_pos[1]
-
-    @staticmethod
-    def __GetIntronLength(exon1_end : int, exon2_start : int) -> int:
-        """
-        Method to get the intron length between two exons
-        exon1_end : end of the first exon
-        exon2_start : start of the second exon
-        output : intron length
-        """
-        return exon2_start - exon1_end
-
-    @staticmethod
-    def __convertDNA_to_RNA(ref_coordinate : int, end_coordinate : int, dna_distance :int, ensembl_transcript : str) -> int:
-        """
-        Method to convert the DNA coordinates space between two positions to RNA position (= remove intron lentgh if necessary)
-        start_coordinate : position that will be the reference in the computing
-        end_coordinate : position that will be the end of the computing
-        ensembl_transcript : ensembl transcript id (to get exon coordinates)
-        output : the the space between the two positions in the RNA space
-        """
-
-        transcript : pb.Transcript = Distances.__bdd.transcript_by_id(ensembl_transcript)
-        exon_pos = transcript.exon_intervals # renvoie un liste de tuple avec kes coordonnées des exons [ (start, end), (start, end), ...]
-        for i in range(len(exon_pos)): # parcours des coordonnées des exons sur l'ARNm
-            if Distances.__IsBothBetween(ref_coordinate, end_coordinate, exon_pos[i]): # si les deux positions sont dans le même exon
-                return dna_distance
-            else: # si les deux positions ne sont pas dans le même exon (soit 1 soit 0)
-                check, unmatch_coord = Distances.__IsOnlyOneBetween(ref_coordinate, end_coordinate, exon_pos[i]) # si une seule position est dans l'exon
-                if check:
-                    correction = Distances.__GetIntronLength(exon_pos[i][1], exon_pos[i+1][0])
-                    for j in range(i+1, len(exon_pos)): # parcours des exons à partir de l'exon où se trouve la position de match 
-                        if Distances.__IsInExon(unmatch_coord, exon_pos[j]) : # si la position du site pas encore identifié est dans l'exon étudié
-                            dna_distance -= correction
-                            return dna_distance
-                        elif j == len(exon_pos): # si la position n'est dans aucun des exons
-                            # TODO mettre une alerte à cet endroit
-                            dna_distance -= correction
-                            return dna_distance
-                        else:
-                            correction += Distances.__GetIntronLength(exon_pos[j][1], exon_pos[j+1][0])
-
-    @staticmethod
-    @njit(fastmath = True)
-    def __compute_distances(start_genomic_first, end_genomic_last, short_splice, share_splice, long_splice, transcript_id : str):
+    # @njit(fastmath = True)
+    def __compute_distances(start_genomic_first, end_genomic_last, short_splice, share_splice, long_splice, exon_pos_list : list[tuple[int, int]]):
         """
         Calcule les distances pour un couple site de fixation de la protéine / site d'épissage alternatif. 
         les arguments sont les différents coordonnées génomiques des acteurs
         Spécifique pour A5SS et A3SS
         """
-        distances = np.zeros(11, dtype=np.int64)  # 8 distances
+        distances = np.zeros(12, dtype=np.int64)  # 8 distances
         distances[0] = start_genomic_first - short_splice
         distances[1] = start_genomic_first - share_splice
         distances[2] = end_genomic_last - short_splice
         distances[3] = end_genomic_last - share_splice
         distances[4] = start_genomic_first - long_splice
         distances[5] = end_genomic_last - long_splice
-        distances[6] = Distances.__convertDNA_to_RNA(start_genomic_first, short_splice, distances[0], transcript_id)
-        distances[7] = Distances.__convertDNA_to_RNA(start_genomic_first, share_splice, distances[1], transcript_id)
-        distances[8] = Distances.__convertDNA_to_RNA(end_genomic_last, short_splice, distances[2], transcript_id)
-        distances[9] = Distances.__convertDNA_to_RNA(end_genomic_last, share_splice, distances[3], transcript_id)
-        distances[10] = Distances.__convertDNA_to_RNA(end_genomic_last, long_splice, distances[5], transcript_id)
+        distances[6] = convert_dna_to_rna(start_genomic_first, short_splice, distances[0], exon_pos_list)
+        distances[7] = convert_dna_to_rna(start_genomic_first, share_splice, distances[1], exon_pos_list)
+        distances[8] = convert_dna_to_rna(end_genomic_last, short_splice, distances[2], exon_pos_list)
+        distances[9] = convert_dna_to_rna(end_genomic_last, share_splice, distances[3], exon_pos_list)
+        distances[10] = convert_dna_to_rna(start_genomic_first, long_splice, distances[4], exon_pos_list)
+        distances[11] = convert_dna_to_rna(end_genomic_last, long_splice, distances[5], exon_pos_list)
         return distances
     
     @staticmethod
     @njit(fastmath = True)
-    def __compute_distances_RI(start_genomic_first, end_genomic_last, RiStart, RiEnd, transcript_id : str):
+    def __compute_distances_RI(start_genomic_first, end_genomic_last, RiStart, RiEnd, exon_pos_list : list[tuple[int, int]]):
         """
         Calcule les distances pour un couple site de fixation de la protéine / site d'épissage alternatif. 
         les arguments sont les différents coordonnées génomiques des acteurs
         Spécifique pour la rétention d'intron
         """
-        distances = np.zeros(4, dtype=np.int64)  # 4 distances
+        distances = np.zeros(8, dtype=np.int64)  # 4 distances
 
         distances[0] = start_genomic_first - RiStart
         distances[1] = start_genomic_first - RiEnd
         distances[2] = end_genomic_last - RiStart
         distances[3] = end_genomic_last - RiEnd
+        distances[4] = convert_dna_to_rna(start_genomic_first, RiStart, distances[0], exon_pos_list)
+        distances[5] = convert_dna_to_rna(start_genomic_first, RiEnd, distances[1], exon_pos_list)
+        distances[6] = convert_dna_to_rna(end_genomic_last, RiStart, distances[2], exon_pos_list)
+        distances[7] = convert_dna_to_rna(end_genomic_last, RiEnd, distances[3], exon_pos_list)
         return distances
     
     @staticmethod
     @njit(fastmath = True)
-    def __compute_distances_SE(start_genomic_first, end_genomic_last, upstreamEnd, DownstreamStart,  transcript_id : str):
+    def __compute_distances_SE(start_genomic_first, end_genomic_last, upstreamEnd, DownstreamStart,  exon_pos_list : list[tuple[int, int]]):
         """
         Calcule les distances pour un couple site de fixation de la protéine / site d'épissage alternatif.
         les arguments sont les différents coordonnées génomiques des acteurs
         Spécifique pour l'exon sauté (skipping exon)
         """
-        distances = np.zeros(4, dtype=np.int64)
+        distances = np.zeros(8, dtype=np.int64)
         distances[0] = start_genomic_first - upstreamEnd
         distances[1] = start_genomic_first - DownstreamStart
         distances[2] = end_genomic_last - upstreamEnd
         distances[3] = end_genomic_last - DownstreamStart
+        distances[4] = convert_dna_to_rna(start_genomic_first, upstreamEnd, distances[0], exon_pos_list)
+        distances[5] = convert_dna_to_rna(start_genomic_first, DownstreamStart, distances[1], exon_pos_list)
+        distances[6] = convert_dna_to_rna(end_genomic_last, upstreamEnd, distances[2], exon_pos_list)
+        distances[7] = convert_dna_to_rna(end_genomic_last, DownstreamStart, distances[3], exon_pos_list)
         return distances
 
     
     @staticmethod
     @njit(fastmath = True)
-    def __compute_distances_MXE(start_genomic_first, end_genomic_last, FirstExonStart, FirstExonEnd, SecondExonStart, SecondExonEnd, upstreamEE, downstreamES, transcript_id : str):
+    def __compute_distances_MXE(start_genomic_first, end_genomic_last, FirstExonStart, FirstExonEnd, SecondExonStart, SecondExonEnd, upstreamEE, downstreamES, exon_pos_list : list[tuple[int, int]]):
         """
         Calcule les distances pour un couple site de fixation de la protéine / site d'épissage alternatif.
         les arguments sont les différents coordonnées génomiques des acteurs
         Spécifique pour mutually exclusive exon
         """
-        distances = np.zeros(12, dtype=np.int64)  # 16 distances
+        distances = np.zeros(24, dtype=np.int64)  # 16 distances
         distances[0] = start_genomic_first - upstreamEE
         distances[1] = start_genomic_first - FirstExonStart
         distances[2] = start_genomic_first - FirstExonEnd
@@ -215,6 +146,18 @@ class Distances():
         distances[9] = start_genomic_first - SecondExonEnd
         distances[10] = end_genomic_last - SecondExonStart
         distances[11] = end_genomic_last - SecondExonEnd
+        distances[12] = convert_dna_to_rna(start_genomic_first, upstreamEE, distances[0], exon_pos_list)
+        distances[13] = convert_dna_to_rna(start_genomic_first, FirstExonStart, distances[1], exon_pos_list)
+        distances[14] = convert_dna_to_rna(start_genomic_first, FirstExonEnd, distances[2], exon_pos_list)
+        distances[15] = convert_dna_to_rna(start_genomic_first, downstreamES, distances[3], exon_pos_list)
+        distances[16] = convert_dna_to_rna(end_genomic_last, upstreamEE, distances[4], exon_pos_list)
+        distances[17] = convert_dna_to_rna(end_genomic_last, FirstExonStart, distances[5], exon_pos_list)
+        distances[18] = convert_dna_to_rna(end_genomic_last, FirstExonEnd, distances[6], exon_pos_list)
+        distances[19] = convert_dna_to_rna(end_genomic_last, downstreamES, distances[7], exon_pos_list)
+        distances[20] = convert_dna_to_rna(start_genomic_first, SecondExonStart, distances[8], exon_pos_list)
+        distances[21] = convert_dna_to_rna(start_genomic_first, SecondExonEnd, distances[9], exon_pos_list)
+        distances[22] = convert_dna_to_rna(end_genomic_last, SecondExonStart, distances[10], exon_pos_list)
+        distances[23] = convert_dna_to_rna(end_genomic_last, SecondExonEnd, distances[11], exon_pos_list)
         return distances
 
    
@@ -238,19 +181,19 @@ class Distances():
                 share_sp = splicing_same_gene.iloc[j]["shareSplice"]
                 
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                dist_array = Distances.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp, transcript_id)
+                transcript : pb.Transcript = this.__bdd.transcript_by_id(transcript_id)
+                exon_pos_list = transcript.exon_intervals
+                dist_array = Distances.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp, exon_pos_list)
                 
                 # Construire un dict pour tout remettre dans un DataFrame final
                 row_dna = {
-                    "prot_start_short_splice_start": dist_array[0], "prot_start_short_splice_end":   dist_array[1], "prot_end_short_splice_start":   dist_array[2],
-                    "prot_end_short_splice_end":     dist_array[3], "prot_start_long_splice_start":  dist_array[4], "prot_start_long_splice_end":    dist_array[1],
-                    "prot_end_long_splice_start":    dist_array[3], "prot_end_long_splice_end":      dist_array[5],
+                    "prot_start_short_splice_start": dist_array[0], "prot_start_downstream_start":   dist_array[1], "prot_end_short_splice_start":   dist_array[2],
+                    "prot_end_downstream_start":     dist_array[3], "prot_start_long_splice_start":  dist_array[4], "prot_end_long_splice_start":    dist_array[5],
                     "transcript_ID": transcript_id, "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
                 row_rna = {
-                    "prot_start_short_splice_start": dist_array[6], "prot_start_short_splice_end":   dist_array[7], "prot_end_short_splice_start":   dist_array[8],
-                    "prot_end_short_splice_end":     dist_array[9], "prot_start_long_splice_start":  dist_array[10], "prot_start_long_splice_end":    dist_array[7],
-                    "prot_end_long_splice_start":    dist_array[9], "prot_end_long_splice_end":      dist_array[11],
+                    "prot_start_short_splice_start": dist_array[6], "prot_start_downstream_start":   dist_array[7], "prot_end_short_splice_start":   dist_array[8],
+                    "prot_end_downstream_start":     dist_array[9], "prot_start_long_splice_start":  dist_array[10], "prot_end_long_splice_start":    dist_array[11],
                     "transcript_ID": transcript_id, "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
 
@@ -264,7 +207,8 @@ class Distances():
                  
     def distanceA3SS(this, splice_type : str = "A3SS_+") :
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "shortSplice", "longSplice", "shareSplice"]]
-        results = []  # On stockera ici toutes les lignes calculées
+        results_dna = []  # On stockera ici toutes les lignes calculées
+        results_rna = []
         for i in range(this.__data_prot.shape[0]):
             splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
             if this.__IsDataFrameNull(splicing_same_gene):
@@ -278,24 +222,29 @@ class Distances():
                 long_sp = splicing_same_gene.iloc[j]["longSplice"]
                 share_sp = splicing_same_gene.iloc[j]["shareSplice"]
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                dist_array = Distances.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp, transcript_id)
+                transcript : pb.Transcript = this.__bdd.transcript_by_id(transcript_id)
+                exon_pos_list = transcript.exon_intervals
+
+                dist_array = Distances.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp, exon_pos_list)
                 # Construire un dict pour tout remettre dans un DataFrame final
-                row = {
-                    "prot_start_short_splice_start": dist_array[1],
-                    "prot_start_short_splice_end":   dist_array[0],
-                    "prot_end_short_splice_start":   dist_array[3],
-                    "prot_end_short_splice_end":     dist_array[2],
-                    "prot_start_long_splice_start":  dist_array[1],
-                    "prot_start_long_splice_end":    dist_array[4],
-                    "prot_end_long_splice_start":    dist_array[5],
-                    "prot_end_long_splice_end":      dist_array[3],
-                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
-                    "prot_seq": this.__data_prot.loc[i, "seq"]
+                row_dna = {
+                    "prot_start_short_splice_start": dist_array[0], "prot_start_upstream_end":   dist_array[1], "prot_end_short_splice_start":   dist_array[2],
+                    "prot_end_upstream_end":     dist_array[3], "prot_start_long_splice_start":  dist_array[4], "prot_end_long_splice_start":    dist_array[5],
+                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
-                results.append(row)
+                row_rna = {
+                    "prot_start_short_splice_start": dist_array[6], "prot_start_upstream_end":   dist_array[7], "prot_end_short_splice_start":   dist_array[8],
+                    "prot_end_upstream_end":     dist_array[9], "prot_start_long_splice_start":  dist_array[10], "prot_end_long_splice_start":    dist_array[11],
+                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
+                }
+                results_dna.append(row_dna)
+                results_rna.append(row_rna)
         # Convertir la liste de dicts en DataFrame
-        df = pd.DataFrame(results)
-        this.__CreateDistanceFile(df, splice_type)  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
+        df_dna = pd.DataFrame(results_dna)
+        df_rna = pd.DataFrame(results_rna)
+        this.__CreateDistanceFile(df_dna, splice_type)  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
+        this.__CreateDistanceFile(df_rna, splice_type, "RNA") 
+
 
     def distanceRI(this, splice_type: str = "RI_+") -> None:
         """
@@ -304,7 +253,8 @@ class Distances():
 
         """
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "chr", "strand", "RiStart", "RiEnd"]]  # récupère les coordonnées des sites de splicing
-        results = []
+        results_dna = []
+        results_rna = list()
         # Browse all the protein fixation sites
         for i in range(this.__data_prot.shape[0]):
             # Select the splicing sites of the same gene to avoid heavy computational loss
@@ -317,18 +267,23 @@ class Distances():
                 RiStart = splicing_same_gene.iloc[j]["RiStart"]
                 RiEnd = splicing_same_gene.iloc[j]["RiEnd"]
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                dist_array = Distances.__compute_distances_RI(start_first, end_last, RiStart, RiEnd, transcript_id)
-                row = {
-                    "prot_start_RiStart": dist_array[0],
-                    "prot_start_RiEnd": dist_array[1],
-                    "prot_end_RiStart": dist_array[2],
-                    "prot_end_RiEnd": dist_array[3],
-                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
-                    "prot_seq": this.__data_prot.loc[i, "seq"]
+                transcript = this.__bdd.transcript_by_id(transcript_id)
+                exon_pos_list = transcript.exon_intervals
+                dist_array = Distances.__compute_distances_RI(start_first, end_last, RiStart, RiEnd, exon_pos_list)
+                row_dna = {
+                    "prot_start_RiStart": dist_array[0], "prot_start_RiEnd": dist_array[1], "prot_end_RiStart": dist_array[2],
+                    "prot_end_RiEnd": dist_array[3], "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
-                results.append(row)
-        df = pd.DataFrame(results)
-        this.__CreateDistanceFile(df, splice_type)
+                row_rna = {
+                    "prot_start_RiStart": dist_array[4], "prot_start_RiEnd": dist_array[5], "prot_end_RiStart": dist_array[6],
+                    "prot_end_RiEnd": dist_array[7], "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
+                }
+                results_dna.append(row_dna)
+                results_rna.append(row_rna)
+        df_dna = pd.DataFrame(results_dna)
+        df_rna = pd.DataFrame(results_rna)
+        this.__CreateDistanceFile(df_dna, splice_type)
+        this.__CreateDistanceFile(df_rna, splice_type, "RNA")
         
     def distanceSE(this, splice_type: str = "SE") -> None:
         """
@@ -336,7 +291,8 @@ class Distances():
         splice_type : type de splicing
         """
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "chr", "strand", "upstreamEnd", "DownstreamStart"]]
-        results = []
+        results_dna = []
+        results_rna = []
         # Browse all the protein fixation sites
         for i in range(this.__data_prot.shape[0]):
             splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
@@ -348,18 +304,23 @@ class Distances():
                 upstreamEnd = splicing_same_gene.iloc[j]["upstreamEnd"]
                 DownstreamStart = splicing_same_gene.iloc[j]["DownstreamStart"]
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                dist_array = Distances.__compute_distances_SE(start_first, end_last, upstreamEnd, DownstreamStart, transcript_id)
-                row = {
-                    "prot_start_upstreamEnd": dist_array[0],
-                    "prot_start_DownstreamStart": dist_array[1],
-                    "prot_end_upstreamEnd": dist_array[2],
-                    "prot_end_DownstreamStart": dist_array[3],
-                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
-                    "prot_seq": this.__data_prot.loc[i, "seq"]
+                transcript = this.__bdd.transcript_by_id(transcript_id)
+                exon_pos_list = transcript.exon_intervals
+                dist_array = Distances.__compute_distances_SE(start_first, end_last, upstreamEnd, DownstreamStart, exon_pos_list)
+                row_dna = {
+                    "prot_start_upstreamEnd": dist_array[0], "prot_start_DownstreamStart": dist_array[1], "prot_end_upstreamEnd": dist_array[2],
+                    "prot_end_DownstreamStart": dist_array[3], "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
-                results.append(row)
-        df = pd.DataFrame(results)
-        this.__CreateDistanceFile(df, splice_type)
+                row_rna = {
+                    "prot_start_upstreamEnd": dist_array[4], "prot_start_DownstreamStart": dist_array[5], "prot_end_upstreamEnd": dist_array[6],
+                    "prot_end_DownstreamStart": dist_array[7], "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
+                }
+                results_dna.append(row_dna)
+                results_rna.append(row_rna)
+        df_dna = pd.DataFrame(results_dna)
+        df_rna = pd.DataFrame(results_rna)
+        this.__CreateDistanceFile(df_dna, splice_type)
+        this.__CreateDistanceFile(df_rna, splice_type, "RNA")
 
 
 
@@ -370,7 +331,8 @@ class Distances():
         splice_type : type de splicing
         """
         splicing_coordinates: pd.DataFrame = this.__data_splicing[splice_type][["GeneID", "chr", "strand", "1stExonStart", "1stExonEnd", "2ndExonStart", "2ndExonEnd", "upstreamEE", "downstreamES"]]
-        results = []
+        results_dna = []
+        results_rna = []
         # Browse all the protein fixation sites
         for i in range(this.__data_prot.shape[0]):
             splicing_same_gene = splicing_coordinates.loc[splicing_coordinates["GeneID"] == this.__data_prot.loc[i, "GeneID"]]
@@ -386,26 +348,30 @@ class Distances():
                 upstreamEE = splicing_same_gene.iloc[j]["upstreamEE"]
                 downstreamES = splicing_same_gene.iloc[j]["downstreamES"]
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                dist_array = Distances.__compute_distances_MXE(start_first, end_last, FirstExonStart, FirstExonEnd, SecondExonStart, SecondExonEnd, upstreamEE, downstreamES, transcript_id)
-                row = {
-                    "prot_start_upstreamEE": dist_array[0],
-                    "prot_start_FirstExonStart": dist_array[1],
-                    "prot_start_FirstExonEnd": dist_array[2],
-                    "prot_start_downstreamES": dist_array[3],
-                    "prot_end_upstreamEE": dist_array[4],
-                    "prot_end_FirstExonStart": dist_array[5],
-                    "prot_end_FirstExonEnd": dist_array[6],
-                    "prot_end_downstreamES": dist_array[7],
-                    "prot_start_SecondExonStart": dist_array[8],
-                    "prot_start_SecondExonEnd": dist_array[9],
-                    "prot_end_SecondExonStart": dist_array[10],
-                    "prot_end_SecondExonEnd": dist_array[11],
-                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"],
-                    "prot_seq": this.__data_prot.loc[i, "seq"]
+                transcript = this.__bdd.transcript_by_id(transcript_id)
+                exon_pos_list = transcript.exon_intervals
+                dist_array = Distances.__compute_distances_MXE(start_first, end_last, FirstExonStart, FirstExonEnd, SecondExonStart, SecondExonEnd, upstreamEE, downstreamES, exon_pos_list)
+                row_dna = {
+                    "prot_start_upstreamEE": dist_array[0], "prot_start_FirstExonStart": dist_array[1], "prot_start_FirstExonEnd": dist_array[2],
+                    "prot_start_downstreamES": dist_array[3], "prot_end_upstreamEE": dist_array[4], "prot_end_FirstExonStart": dist_array[5],
+                    "prot_end_FirstExonEnd": dist_array[6], "prot_end_downstreamES": dist_array[7], "prot_start_SecondExonStart": dist_array[8],
+                    "prot_start_SecondExonEnd": dist_array[9], "prot_end_SecondExonStart": dist_array[10], "prot_end_SecondExonEnd": dist_array[11],
+                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
                 }
-                results.append(row)
-        df = pd.DataFrame(results)
-        this.__CreateDistanceFile(df, splice_type)
+                row_rna = {
+                    "prot_start_upstreamEE": dist_array[12], "prot_start_FirstExonStart": dist_array[13], "prot_start_FirstExonEnd": dist_array[14],
+                    "prot_start_downstreamES": dist_array[15], "prot_end_upstreamEE": dist_array[16], "prot_end_FirstExonStart": dist_array[17],
+                    "prot_end_FirstExonEnd": dist_array[18], "prot_end_downstreamES": dist_array[19], "prot_start_SecondExonStart": dist_array[20],
+                    "prot_start_SecondExonEnd": dist_array[21], "prot_end_SecondExonStart": dist_array[22], "prot_end_SecondExonEnd": dist_array[23],
+                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
+
+                }
+                results_dna.append(row_dna)
+                results_rna.append(row_rna)
+        df_dna = pd.DataFrame(results_dna)
+        df_rna = pd.DataFrame(results_rna)
+        this.__CreateDistanceFile(df_dna, splice_type)
+        this.__CreateDistanceFile(df_rna, splice_type, "RNA")
 
     def ComputeDistance(this, splice_type : str = ""):
         
