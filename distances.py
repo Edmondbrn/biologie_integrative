@@ -5,7 +5,7 @@ import ast
 import pyensembl as pb
 from numba import njit
 import pyensembl as pb
-from distances_utils import convert_dna_to_rna
+from distances_utils import convert_dna_to_rna, verify_count
 
 os.chdir(os.path.dirname(__file__))
 
@@ -78,13 +78,23 @@ class Distances():
         distances[4] = start_genomic_first - long_splice
         distances[5] = end_genomic_last - long_splice
         distances[6] = convert_dna_to_rna(start_genomic_first, short_splice, distances[0], exon_pos_list)
+        verify_count(distances[0], distances[6])
         distances[7] = convert_dna_to_rna(start_genomic_first, share_splice, distances[1], exon_pos_list)
+        verify_count(distances[1], distances[7])
         distances[8] = convert_dna_to_rna(end_genomic_last, short_splice, distances[2], exon_pos_list)
+        verify_count(distances[2], distances[8])
         distances[9] = convert_dna_to_rna(end_genomic_last, share_splice, distances[3], exon_pos_list)
+        verify_count(distances[3], distances[9])
         distances[10] = convert_dna_to_rna(start_genomic_first, long_splice, distances[4], exon_pos_list)
+        verify_count(distances[4], distances[10])
         distances[11] = convert_dna_to_rna(end_genomic_last, long_splice, distances[5], exon_pos_list)
+        verify_count(distances[5], distances[11])
         return distances
-    
+
+   
+
+
+
     @staticmethod
     @njit(fastmath = True)
     def __compute_distances_RI(start_genomic_first, end_genomic_last, RiStart, RiEnd, exon_pos_list : list[tuple[int, int]]):
@@ -100,9 +110,13 @@ class Distances():
         distances[2] = end_genomic_last - RiStart
         distances[3] = end_genomic_last - RiEnd
         distances[4] = convert_dna_to_rna(start_genomic_first, RiStart, distances[0], exon_pos_list)
+        verify_count(distances[0], distances[4])
         distances[5] = convert_dna_to_rna(start_genomic_first, RiEnd, distances[1], exon_pos_list)
+        verify_count(distances[1], distances[5])
         distances[6] = convert_dna_to_rna(end_genomic_last, RiStart, distances[2], exon_pos_list)
+        verify_count(distances[2], distances[6])
         distances[7] = convert_dna_to_rna(end_genomic_last, RiEnd, distances[3], exon_pos_list)
+        verify_count(distances[3], distances[7])
         return distances
     
     @staticmethod
@@ -119,9 +133,13 @@ class Distances():
         distances[2] = end_genomic_last - upstreamEnd
         distances[3] = end_genomic_last - DownstreamStart
         distances[4] = convert_dna_to_rna(start_genomic_first, upstreamEnd, distances[0], exon_pos_list)
+        verify_count(distances[0], distances[4])
         distances[5] = convert_dna_to_rna(start_genomic_first, DownstreamStart, distances[1], exon_pos_list)
+        verify_count(distances[1], distances[5])
         distances[6] = convert_dna_to_rna(end_genomic_last, upstreamEnd, distances[2], exon_pos_list)
+        verify_count(distances[2], distances[6])
         distances[7] = convert_dna_to_rna(end_genomic_last, DownstreamStart, distances[3], exon_pos_list)
+        verify_count(distances[3], distances[7])
         return distances
 
     
@@ -147,17 +165,29 @@ class Distances():
         distances[10] = end_genomic_last - SecondExonStart
         distances[11] = end_genomic_last - SecondExonEnd
         distances[12] = convert_dna_to_rna(start_genomic_first, upstreamEE, distances[0], exon_pos_list)
+        verify_count(distances[0], distances[12])
         distances[13] = convert_dna_to_rna(start_genomic_first, FirstExonStart, distances[1], exon_pos_list)
+        verify_count(distances[1], distances[13])
         distances[14] = convert_dna_to_rna(start_genomic_first, FirstExonEnd, distances[2], exon_pos_list)
+        verify_count(distances[2], distances[14])
         distances[15] = convert_dna_to_rna(start_genomic_first, downstreamES, distances[3], exon_pos_list)
+        verify_count(distances[3], distances[15])
         distances[16] = convert_dna_to_rna(end_genomic_last, upstreamEE, distances[4], exon_pos_list)
+        verify_count(distances[4], distances[16])
         distances[17] = convert_dna_to_rna(end_genomic_last, FirstExonStart, distances[5], exon_pos_list)
+        verify_count(distances[5], distances[17])
         distances[18] = convert_dna_to_rna(end_genomic_last, FirstExonEnd, distances[6], exon_pos_list)
+        verify_count(distances[6], distances[18])
         distances[19] = convert_dna_to_rna(end_genomic_last, downstreamES, distances[7], exon_pos_list)
+        verify_count(distances[7], distances[19])
         distances[20] = convert_dna_to_rna(start_genomic_first, SecondExonStart, distances[8], exon_pos_list)
+        verify_count(distances[8], distances[20])
         distances[21] = convert_dna_to_rna(start_genomic_first, SecondExonEnd, distances[9], exon_pos_list)
+        verify_count(distances[9], distances[21])
         distances[22] = convert_dna_to_rna(end_genomic_last, SecondExonStart, distances[10], exon_pos_list)
+        verify_count(distances[10], distances[22])
         distances[23] = convert_dna_to_rna(end_genomic_last, SecondExonEnd, distances[11], exon_pos_list)
+        verify_count(distances[11], distances[23])
         return distances
 
    
@@ -276,7 +306,8 @@ class Distances():
                 }
                 row_rna = {
                     "prot_start_RiStart": dist_array[4], "prot_start_RiEnd": dist_array[5], "prot_end_RiStart": dist_array[6],
-                    "prot_end_RiEnd": dist_array[7], "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
+                    "prot_end_RiEnd": dist_array[7], "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"],
+                    "splice_start" : splicing_same_gene.iloc[j]["RiStart"]
                 }
                 results_dna.append(row_dna)
                 results_rna.append(row_rna)
@@ -363,7 +394,8 @@ class Distances():
                     "prot_start_downstreamES": dist_array[15], "prot_end_upstreamEE": dist_array[16], "prot_end_FirstExonStart": dist_array[17],
                     "prot_end_FirstExonEnd": dist_array[18], "prot_end_downstreamES": dist_array[19], "prot_start_SecondExonStart": dist_array[20],
                     "prot_start_SecondExonEnd": dist_array[21], "prot_end_SecondExonStart": dist_array[22], "prot_end_SecondExonEnd": dist_array[23],
-                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"]
+                    "transcript_ID": this.__data_prot.loc[i, "ensembl_id"], "prot_seq": this.__data_prot.loc[i, "seq"],
+                    "splice_start" : splicing_same_gene.iloc[j]["1stExonStart"]
 
                 }
                 results_dna.append(row_dna)
@@ -402,7 +434,7 @@ class Distances():
 if __name__ == "__main__":
     dist = Distances()
     dist._LoadDataProt("data_filteredFMRP.tsv")
-    splice_types = ["A5SS_+", "A5SS_-", "A3SS_+", "A3SS_-", "RI_+", "RI_-", "SE_-", "SE_+", "MXE_-", "MXE_+"]
+    splice_types = [ "RI_+", "RI_-", "A5SS_+", "A5SS_-", "A3SS_+", "A3SS_-", "SE_-", "SE_+", "MXE_-", "MXE_+"]
     for splice_type in splice_types:
         dist.start(path_splicing = "filteredRmats", splice_type = splice_type)
         print(f"Distances for {splice_type} computed")

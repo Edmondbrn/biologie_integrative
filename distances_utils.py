@@ -1,4 +1,5 @@
 from numba import njit
+import pyensembl  as pb
 
 @njit(fastmath=True)
 def is_both_between(start_coordinate: int, end_coordinate: int, exon_pos: tuple) -> bool:
@@ -19,7 +20,7 @@ def is_only_one_between(start_coordinate: int, end_coordinate: int, exon_pos: tu
     """
     if start_coordinate >= exon_pos[0] and start_coordinate <= exon_pos[1]:
         return (True, end_coordinate)
-    elif end_coordinate >= exon_pos[0] and end_coordinate <= exon_pos[1]:
+    elif end_coordinate >= exon_pos[0] and end_coordinate -1 <= exon_pos[1]:
         return (True, start_coordinate)
     else:
         return (False, None)
@@ -61,34 +62,48 @@ def convert_dna_to_rna(ref_coordinate: int, end_coordinate: int, dna_distance: i
     Convertit la distance sur le génome (DNA) en distance sur l'ARN (RNA),
     en soustrayant les introns si nécessaire.
     """
-
+    exon_pos_list = sorted(exon_pos_list)
     for i in range(len(exon_pos_list)):
         exon = exon_pos_list[i]
-        if is_both_between(ref_coordinate, end_coordinate, exon):
+        if is_both_between(ref_coordinate, end_coordinate +1, exon): # si les 2 coordonnées sont sur le même exon
             return dna_distance
         else:
-            check, unmatch_coord = is_only_one_between(ref_coordinate, end_coordinate, exon)
+            # print(f"Ref coord: {ref_coordinate}, End coord: {end_coordinate}, Exon: {exon[0]} : {exon[1]}")
+            check, unmatch_coord = is_only_one_between(ref_coordinate, end_coordinate+1, exon) # si une des deux est sur l'exon étudié
             if check:
                 # On détermine l'intron suivant
                 correction = 0
-                for j in range(i+1, len(exon_pos_list)):
+                # print(f"Exon pos start: {exon[0]} : {exon[1]}")
+                for j in range(i+1, len(exon_pos_list)): # parcours des exons suivants
+                    # print(f"Exon pos : {exon_pos_list[j][0]} : {exon_pos_list[j][1]}")
+                    # print(f"Correction: {correction}")
                     exon_j = exon_pos_list[j]
-                    if is_in_exon(unmatch_coord, exon_j):
+                    if is_in_exon(unmatch_coord, exon_j): # si l'autre coordonnée est dans l'exon suivant
+                        # print("Test is in exon")
                         correction += get_intron_length(exon_pos_list[j-1][1], exon_j[0])
                         dna_distance = add_or_subtract_intron_length(dna_distance, correction)
                         return dna_distance
-                    elif is_in_previous_intron(unmatch_coord, exon_j):
+                    elif is_in_previous_intron(unmatch_coord, exon_j): # si l'autre coordonnée est dans l'intron précédent de l'exon suivant
+                        # print("Test is in previous intron")
                         correction += get_intron_length(exon_pos_list[j-1][1], unmatch_coord)
+                        # print(f"Correction 2: {correction}")
                         dna_distance = add_or_subtract_intron_length(dna_distance, correction)
                         return dna_distance
-                    elif j == len(exon_pos_list) - 1:
+                    elif j == len(exon_pos_list) - 1: # si on est à la fin de la liste des exons
+                        # print("Test is at the end")
                         dna_distance = add_or_subtract_intron_length(dna_distance, correction)
                         return dna_distance
-                    else:
+                    else: #~ si l'autre coordonnée n'est pas dans l'exon suivant
+                        # print("Test is not in exon")
                         correction += get_intron_length(exon_pos_list[j-1][1], exon_pos_list[j][0])
     return dna_distance  # Par défaut si aucune condition ne s'applique
 
+@njit(fastmath=True)
+def verify_count(dna_distance, rna_distance):
+    print(f"Error, rna : {rna_distance}, dna : {dna_distance}") if abs(rna_distance) > abs(dna_distance) else None
+
 if __name__ == "__main__":
+    bdd = pb.EnsemblRelease(species="mus_musculus", release=102)
     print("Test 1")
     exon_pos_list = [(0, 10), (15, 20), (25, 30)]
     ref_coordinate = 5
@@ -120,3 +135,15 @@ if __name__ == "__main__":
     dna_distance = -23
     print(f"Exepected RNA distance: -13")
     print(convert_dna_to_rna(ref_coordinate, end_coordinate, dna_distance, exon_pos_list))
+    print("Debug RI coordinate")
+    transcript_id = "ENSMUST00000110168"
+    coord1 = 58069393
+    coord2 = 58052223
+    dna_distance = coord1 - coord2
+    transcript : pb.Transcript = bdd.transcript_by_id(transcript_id)
+    exon_pos = transcript.exon_intervals
+    print(f"1st coordinate: {coord1}")
+    print(f"2nd coordinate: {coord2}")
+    print(f"Transcript ID: {transcript_id}")
+    print(f"DNA distance: {dna_distance}")
+    print(f"RNA distance: {convert_dna_to_rna(coord1, coord2, dna_distance, exon_pos)}")
