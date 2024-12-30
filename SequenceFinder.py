@@ -151,7 +151,7 @@ class SequenceFinder():
                 continue
             for i in range(exon_number, len(exons)): # browse the exon but we kept the exon number to avoid to browse all the exons each time
                 exon = exons[i]
-                exon_length = exon.end - exon.start + 1
+                exon_length = exon.end - exon.start
                 if current_spliced_position + exon_length > spliced_position:
                     offset = spliced_position - current_spliced_position
                     genomic_positions.append(exon.start + offset)
