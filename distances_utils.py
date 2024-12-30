@@ -1,220 +1,4 @@
 from numba import njit
-import pyensembl  as pb
-from numpy import Inf
-import pytest
-
-@njit(fastmath=True)
-def is_both_between(start_coordinate: int, end_coordinate: int, exon_pos: tuple) -> bool:
-    """
-    Vérifie si deux positions sont dans le même exon.
-    """
-    return (
-        start_coordinate >= exon_pos[0] and start_coordinate <= exon_pos[1]
-    ) and (
-        end_coordinate >= exon_pos[0] and end_coordinate <= exon_pos[1]
-    )
-
-@njit(fastmath=True)
-def is_only_one_between(start_coordinate: int, end_coordinate: int, exon_pos: tuple):
-    """
-    Vérifie si une seule des deux positions se trouve dans un exon.
-    Retourne (True, autre_coord) si c'est le cas, sinon (False, None).
-    """
-    if start_coordinate >= exon_pos[0] and start_coordinate <= exon_pos[1]:
-        return (True, end_coordinate)
-    elif end_coordinate >= exon_pos[0] and end_coordinate -1 <= exon_pos[1]:
-        return (True, start_coordinate)
-    else:
-        return (False, None)
-    
-@njit(fastmath=True)
-def is_in_exon(coordinate: int, exon_pos: tuple) -> bool:
-    """
-    Vérifie si une position se trouve dans un exon.
-    """
-    return exon_pos[0] <= coordinate <= exon_pos[1]
-
-@njit(fastmath=True)
-def is_in_intron(coordinate: int, intron_pos: tuple) -> bool:
-    """
-    Vérifie si une position se trouve dans un exon.
-    """
-    return intron_pos[0] <= coordinate <= intron_pos[1]
-
-@njit(fastmath=True)
-def get_intron_length(exon1_end: int, exon2_start: int) -> int:
-    """
-    Retourne la longueur de l'intron entre deux exons.
-    """
-    return exon2_start - exon1_end
-
-@njit(fastmath=True)
-def add_or_subtract_intron_length(dna_distance: int, intron_length : int) -> int:
-    """
-    Ajoute ou soustrait la longueur des introns à la distance sur le génome (DNA).
-    """
-    if dna_distance < 0:
-        return dna_distance + intron_length
-    else:
-        return dna_distance - intron_length
-
-@njit(fastmath=True)
-def is_in_previous_intron(coordinate: int, exon_pos: tuple) -> bool:
-    """
-    Vérifie si une position se trouve dans l'intron précédent un exon.
-    """
-    return coordinate < exon_pos[0]
-
-@njit(fastmath=True)
-def get_intron_coord(exon_pos_list : tuple[list[int, int]])-> tuple[int, int]:
-    """
-    Retourne les coordonnées de l'intron entre deux exons.
-    """
-    intron_list = list()
-    for j in range(len(exon_pos_list)-1):
-        intron_list.append((exon_pos_list[j][1]+1, exon_pos_list[j+1][0]-1))
-    # intron_list.append((exon_pos_list[-1][1]+1, Inf))
-    return intron_list
-
-# @njit(fastmath=True)
-# def convert_dna_to_rna(ref_coordinate: int, end_coordinate: int, dna_distance: int, exon_pos_list : list[tuple[int, int]]) -> int:
-#     """
-#     Convertit la distance sur le génome (DNA) en distance sur l'ARN (RNA),
-#     en soustrayant les introns si nécessaire.
-#     """
-#     exon_pos_list = sorted(exon_pos_list)
-#     intron_pos_list = get_intron_coord(exon_pos_list)
-#     min_coord = min(ref_coordinate, end_coordinate)
-#     max_coord = max(ref_coordinate, end_coordinate)
-#     rna_correction = 0
-#     for i in range(len(exon_pos_list)):
-#         exon = exon_pos_list[i]
-#         intron = intron_pos_list[i]
-#         if is_both_between(ref_coordinate, end_coordinate, exon):
-#             return dna_distance
-#         elif is_in_exon(min_coord, exon) or is_in_intron(min_coord, intron):
-#             if is_in_intron(max_coord, intron):
-#                 rna_correction += get_intron_length(exon[1], max_coord)
-#                 return add_or_subtract_intron_length(dna_distance, rna_correction)
-#             elif is_in_exon(max_coord, exon):
-#                 return dna_distance
-#             else:
-#                 rna_correction = min(intron[1], max_coord) - max(min_coord, exon[1])
-#                 for j in range(i+1, len(exon_pos_list)):
-#                     exon_pos_j = exon_pos_list[j]
-#                     intron_pos_j = intron_pos_list[j]
-#                     if is_in_exon(max_coord, exon_pos_j):
-#                         return add_or_subtract_intron_length(dna_distance, rna_correction)
-#                     elif is_in_intron(max_coord, intron_pos_j):
-#                         return add_or_subtract_intron_length(dna_distance, rna_correction)
-#                     else:
-#                         rna_correction += get_intron_length(exon_pos_j[1], intron_pos_j[1]+1)
-#     return 1000000000
-                        
-# @njit(fastmath=True)
-# def convert_dna_to_rna(ref_coordinate: int, end_coordinate: int, dna_distance: int, exon_pos_list : list[tuple[int, int]]) -> int:
-#     """
-#     Convertit la distance sur le génome (DNA) en distance sur l'ARN (RNA),
-#     en soustrayant les introns si nécessaire.
-#     """
-#     exon_pos_list = sorted(exon_pos_list)
-#     for i in range(len(exon_pos_list)):
-#         exon = exon_pos_list[i]
-#         if is_both_between(ref_coordinate, end_coordinate +1, exon): # si les 2 coordonnées sont sur le même exon
-#             return dna_distance
-#         else:
-#             # print(f"Ref coord: {ref_coordinate}, End coord: {end_coordinate}, Exon: {exon[0]} : {exon[1]}")
-#             check, unmatch_coord = is_only_one_between(ref_coordinate, end_coordinate+1, exon) # si une des deux est sur l'exon étudié
-#             if check:
-#                 # On détermine l'intron suivant
-#                 correction = 0
-#                 # print(f"Exon pos start: {exon[0]} : {exon[1]}")
-#                 for j in range(i+1, len(exon_pos_list)): # parcours des exons suivants
-#                     # print(f"Exon pos : {exon_pos_list[j][0]} : {exon_pos_list[j][1]}")
-#                     # print(f"Correction: {correction}")
-#                     exon_j = exon_pos_list[j]
-#                     if is_in_exon(unmatch_coord, exon_j): # si l'autre coordonnée est dans l'exon suivant
-#                         # print("Test is in exon")
-#                         correction += get_intron_length(exon_pos_list[j-1][1], exon_j[0])
-#                         dna_distance = add_or_subtract_intron_length(dna_distance, correction)
-#                         return dna_distance
-#                     elif is_in_previous_intron(unmatch_coord, exon_j): # si l'autre coordonnée est dans l'intron précédent de l'exon suivant
-#                         # print("Test is in previous intron")
-#                         correction += get_intron_length(exon_pos_list[j-1][1], unmatch_coord)
-#                         # print(f"Correction 2: {correction}")
-#                         dna_distance = add_or_subtract_intron_length(dna_distance, correction)
-#                         return dna_distance
-#                     elif j == len(exon_pos_list) - 1: # si on est à la fin de la liste des exons
-#                         # print("Test is at the end")
-#                         dna_distance = add_or_subtract_intron_length(dna_distance, correction)
-#                         return dna_distance
-#                     else: #~ si l'autre coordonnée n'est pas dans l'exon suivant
-#                         # print("Test is not in exon")
-#                         correction += get_intron_length(exon_pos_list[j-1][1], exon_pos_list[j][0])
-#     return dna_distance  # Par défaut si aucune condition ne s'applique
-
-@njit(fastmath=True)
-def verify_count(dna_distance, rna_distance):
-    print(f"Error, rna : {rna_distance}, dna : {dna_distance}") if abs(rna_distance) > abs(dna_distance) else None
-
-
-
-
-# def convert_dna_to_rna(dna_pos : int, transcript : pb.Transcript) -> int :
-#     rna_pos = 0
-#     exons = transcript.exon_intervals
-
-#     for exon_start, exon_end in exons:
-#         print(exon_start)
-#         if exon_start <= dna_pos <= exon_end:
-#             offset = dna_pos - exon_start
-#             return rna_pos + offset
-#         elif dna_pos > exon_end:
-#             rna_pos += exon_end - exon_start
-#         else:
-#             return "Error dna position is before than first exon start site"
-
-
-# @njit(fastmath=True)
-# def convert_dna_to_rna(prot_coordinate: int, splice_coordinate: int, dna_distance: int, exon_pos_list : list[tuple[int, int]]) -> int:
-#     """
-#     Convertit la distance sur le génome (DNA) en distance sur l'ARN (RNA),
-#     en soustrayant les introns si nécessaire.
-#     """
-#     tot_exon = len(exon_pos_list)
-#     exon_pos_list = sorted(exon_pos_list)
-#     intron_pos_list = get_intron_coord(exon_pos_list)
-#     rna_correction = 0
-#     sign = 1 if dna_distance >= 0 else -1
-#     dna_dist_abs = abs(dna_distance)
-#     min_coord = min(prot_coordinate, splice_coordinate)
-#     max_coord = max(prot_coordinate, splice_coordinate)
-#     if splice_coordinate < exon_pos_list[0][0]-1 or splice_coordinate > exon_pos_list[-1][1]+1:
-#         return "Error splice site is not on the same transcript as protein fixation site"
-#     else:
-#         for i in range(tot_exon):
-#             if exon_pos_list[i][0] <= min_coord <= exon_pos_list[i][1]: # si la coordonnées la plus petite est dans l'exon
-#                 if exon_pos_list[i][0] <= max_coord <= exon_pos_list[i][1]: # si la plus grande l'est aussi
-#                     return dna_distance, False # on ne fait rien à la distance ADN alors
-#                 elif  i != tot_exon and intron_pos_list[i][0] <= max_coord <= intron_pos_list[i][1] : # si le deuxième site est dans l'intron suivant
-#                     return str(dna_distance) , True # si le deuxième site est dans un intron, on garder la distance ADN mais on met une * pour avertir l'utilisateur
-#                 else : # si le deuxième site est dans une structure plus loin
-#                     rna_correction += get_intron_length(exon_pos_list[i][1], exon_pos_list[i+1][0])
-#                     for y in range(i+1, tot_exon):
-#                         if exon_pos_list[y][0] <= max_coord <= exon_pos_list[y][1]: # si la deuxième coordonnées est dans l'exon suivant
-#                             rna_dist_abs = dna_dist_abs - rna_correction # on retire  la distance des introns passés
-#                             return sign * rna_dist_abs, False
-#                         elif y != tot_exon and intron_pos_list[y][0] <= max_coord <= intron_pos_list[y][1]:
-#                             rna_dist_abs = dna_dist_abs - rna_correction
-#                             return sign * rna_dist_abs, True # allerte l'utilisateur si la deuxième coordonnées est dans un intron
-#                         else:
-#                             rna_correction += get_intron_length(exon_pos_list[y][1], exon_pos_list[y+1][0])
-#                     break
-#             elif intron_pos_list[i][0] <= min_coord <= intron_pos_list[i][1]:
-#                 pass
-#             else:
-#                 continue
-#         return "Error while computing RNA distance"
 
 
 @njit
@@ -234,20 +18,27 @@ def get_intron_length(intron_start: int, intron_end: int) -> int:
     return max(0, intron_end - intron_start)  # évite négatif si chevauchement inattendu
 
 @njit
-def _check_second_coordinate(
-    max_coord: int,
-    i: int,
-    tot_exon: int,
-    dna_dist_abs: int,
-    rna_correction: int,
-    sign: int,
-    exon_pos_list: list[tuple[int, int]],
-    intron_pos_list: list[tuple[int, int]],
-    manual_flag: bool = False
-):
+def _check_second_coordinate(max_coord: int,
+                             i: int,
+                             tot_exon: int,
+                             dna_dist_abs: int,
+                             rna_correction: int,
+                             sign: int,
+                             exon_pos_list: list[tuple[int, int]],
+                             intron_pos_list: list[tuple[int, int]],
+                             manual_flag: bool = False) -> tuple[int, bool, int]:
     """
     Sous-fonction qui gère la logique de 'max_coord' quand
     la coordonnée min est déjà positionnée (dans exon ou intron).
+    max_cord : coordonnée de fin (ou de référence) du segment.
+    i : index de l'exon où se trouve min_coord.
+    tot_exon : nombre total d'exons.
+    dna_dist_abs : distance absolue sur le génome.
+    rna_correction : distance d'introns déjà retirée.
+    sign : signe de la distance (1 ou -1).
+    exon_pos_list : liste des exons.
+    intron_pos_list : liste des introns.
+    manual_flag : flag manuel (True) pour signaler un site dans un intron.
     
     Renvoie un tuple (distance_rna, has_star) ou une chaîne d'erreur.
     """
@@ -334,8 +125,8 @@ def convert_dna_to_rna( prot_coordinate: int,
                     return dna_distance, True, 0
                 
                 # Ajout correction intron i :
-                if (i+1) < tot_exon:
-                    rna_correction += get_intron_length(min_coord, intron_pos_list[i][1])
+                # if (i+1) < tot_exon:
+                    # rna_correction += get_intron_length(min_coord, intron_pos_list[i][1])
                 
                 # Puis on check le 2e coord (max_coord) comme si on partait de exon i+1.
                 return _check_second_coordinate(max_coord, i+1, tot_exon,
