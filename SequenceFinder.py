@@ -193,7 +193,7 @@ class SequenceFinder():
         start_list = {"start_ensembl" : list()}
         end_list = {"end_ensembl" : list()}
         list_id = {"ensembl_id" : list()}
-        gene_list_id = {"geneensembl" : list()}
+        gene_list_id = {"GeneID" : list()}
         for id, coord in coord_dict.items():
             start_list["start_ensembl"].append(coord[0][0])
             end_list["end_ensembl"].append(coord[0][1])
