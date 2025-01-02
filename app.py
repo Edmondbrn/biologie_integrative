@@ -5,7 +5,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
-from app_utils import FileDialog
+from app_utils import FileDialogManual
+from GLOBAL import *
 
 ICON_PATH = "Ressources/Icones/fugue-icons-3.5.6/icons/"
 
@@ -23,7 +24,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
         self.__create_menu()
 
-        self.resize(800, 600)
+        self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
 
     def __create_menu(self):
@@ -93,7 +94,7 @@ class MainWindow(QMainWindow):
 
 
     def onManualDistances(self):
-        dialog = FileDialog()
+        dialog = FileDialogManual()
         dialog.exec()
 
 
