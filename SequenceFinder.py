@@ -1,7 +1,7 @@
 import pyensembl as pb
 from pandas import read_csv, DataFrame
 import os
-import re
+import regex
 
 NB_PROCESS = 4
 ENSEMBL_NAME = "ensembl_transcript_id"
@@ -84,6 +84,7 @@ class SequenceFinder():
                 if j >= size_ensembl_id: # if we reach the end of the list of ensembl ID (avoid out of range if the division is not absolute)
                     break
                 dict_tmp[(ensembl_id[j], j)] = fixation_sequence[j]
+                # On a un dictionnaire avec en clé les identifiants Ensembl et en valeur les séquences de fixation
             self.__general_list.append(dict_tmp)
         return None
     
@@ -92,11 +93,12 @@ class SequenceFinder():
         """
         Method to align the sequence on the cDNA
         """
-        matches = list(re.finditer(sequence, cDNA))
+        pattern = f"({sequence}){{e<=0}}"
+        matches = list(regex.finditer(pattern, cDNA))
         
-        if SequenceFinder.isNone(matches):
+        if not matches:
             return ("Not found", "Not found")
-        elif SequenceFinder.isUnique(matches):
+        elif len(matches) == 1:
             start = matches[0].start()
         else:
             print("Multiple start found")
@@ -107,7 +109,7 @@ class SequenceFinder():
         
         end = start + len(sequence)
         return start, end
-    # @staticmethod
+
     def __alignSequences(self, parameters : list[pb.Database , dict[ tuple[str, int] : str]]) -> dict[ tuple[str, int] : tuple[int, int]]:
         """
         Method to align the sequences on the cDNA from pyensembl
@@ -120,15 +122,16 @@ class SequenceFinder():
             try:
                 transcript : pb.Transcript = bdd.transcript_by_id(ensembl_id[0])
                 cDNA = transcript.sequence
+                gene = transcript.gene_id
             except:
-                result[ensembl_id] = ("unknown", "unknown"), [("unknown", "unknown")]
+                result[ensembl_id] = ("unknown", "unknown"), [("unknown", "unknown")], 'unknown'
             else :
                 rna_start, rna_end = SequenceFinder.align(cDNA, sequence)
                 if SequenceFinder.isRnaCoordNumber(rna_start) and SequenceFinder.isRnaCoordNumber(rna_end):
                     self.genomic_coordinate_list = self.__spliced_to_genomic(transcript, range(rna_start, rna_end+1))
-                    result[ensembl_id] = ((rna_start, rna_end), self.genomic_coordinate_list)
+                    result[ensembl_id] = ((rna_start, rna_end), self.genomic_coordinate_list, gene)
                 else:
-                    result[ensembl_id] = ("Not found", "Not found"), [("Not found", "Not found")]
+                    result[ensembl_id] = ("Not found", "Not found"), [("Not found", "Not found")], "Not found"
         return result
     
     def __spliced_to_genomic(self, transcript : pb.Transcript, spliced_positions : list[int]):
@@ -148,7 +151,7 @@ class SequenceFinder():
                 continue
             for i in range(exon_number, len(exons)): # browse the exon but we kept the exon number to avoid to browse all the exons each time
                 exon = exons[i]
-                exon_length = exon.end - exon.start + 1
+                exon_length = exon.end - exon.start
                 if current_spliced_position + exon_length > spliced_position:
                     offset = spliced_position - current_spliced_position
                     genomic_positions.append(exon.start + offset)
@@ -190,14 +193,17 @@ class SequenceFinder():
         start_list = {"start_ensembl" : list()}
         end_list = {"end_ensembl" : list()}
         list_id = {"ensembl_id" : list()}
+        gene_list_id = {"GeneID" : list()}
         for id, coord in coord_dict.items():
             start_list["start_ensembl"].append(coord[0][0])
             end_list["end_ensembl"].append(coord[0][1])
             list_id["ensembl_id"].append(id[0])
+            gene_list_id["GeneID"].append(coord[2])
 
         self.__data_prot = self.__data_prot.join(DataFrame(start_list))
         self.__data_prot = self.__data_prot.join(DataFrame(end_list))
         self.__data_prot = self.__data_prot.join(DataFrame(list_id))
+        self.__data_prot = self.__data_prot.join(DataFrame(gene_list_id))
         return None
     
     def __addGenomicCoordinates(self, coord_list : dict) -> None:
@@ -210,7 +216,6 @@ class SequenceFinder():
             start_tuple = list()
             end_tuple = list()
             for tuple_position in coord_list[coord][1]:
-                print(tuple_position)
                 start_tuple.append(tuple_position[0])
                 end_tuple.append(tuple_position[1])
             start_list["start_genomic"].append(start_tuple)
@@ -230,7 +235,6 @@ class SequenceFinder():
 
         __dict_coord = self.__alignSequences((self.__bdd, all_dict))
         self.__addRnaCoordinates(__dict_coord)
-        print(__dict_coord.values())
         self.__addGenomicCoordinates(__dict_coord)
         self.__data_prot.to_csv("data_filteredfinal.tsv", sep = "\t", index = False)
         
@@ -240,7 +244,7 @@ class SequenceFinder():
 
 
 
-
-df_prot = read_csv("data_filtered.tsv", sep = "\t", header = 0)
-app = SequenceFinder(df_prot)
-app.start()
+if __name__ == "__main__":
+    df_prot = read_csv("data_filtered.tsv", sep = "\t", header = 0)
+    app = SequenceFinder(df_prot)
+    app.start()
