@@ -1,0 +1,3 @@
+QPushButton#logo {
+    border: none;
+}

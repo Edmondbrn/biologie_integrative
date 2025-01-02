@@ -1,30 +1,53 @@
 import sys
 from PyQt6.QtWidgets import (
     QMainWindow, QApplication, QVBoxLayout, QWidget, QPushButton,
-    QLabel, QToolBar, QStatusBar, QCheckBox, QMenu
+    QLabel, QToolBar, QStatusBar, QCheckBox, QMenu, QSpacerItem, QSizePolicy
 )
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from app_utils import FileDialogManual
 from GLOBAL import *
 
 ICON_PATH = "Ressources/Icones/fugue-icons-3.5.6/icons/"
 
+def load_stylesheet(file_path):
+    with open(file_path, "r") as file:
+        return file.read()
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Biologie intégrative")
 
-        layout = QVBoxLayout()
-        button = QPushButton("Cliquez-moi")
-        layout.addWidget(button)
+        self.setWindowTitle("BI Project")
+        self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
 
-        container = QWidget()
-        container.setLayout(layout)
-        self.setCentralWidget(container)
+        # Configure the window to start maximized
+        self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
+
+        self.setStyleSheet(load_stylesheet("styles.qss"))
+
         self.__create_menu()
 
-        self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        # Central widget
+        central_widget = QWidget()
+        central_widget.setObjectName("central_widget")
+        self.setCentralWidget(central_widget)
+
+        # Set layout to central widget
+        layout = QVBoxLayout(central_widget)
+        central_widget.setLayout(layout)
+
+        logo = QPushButton()
+        logo.setIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
+        logo.setObjectName('logo')
+        logo.setIconSize(QSize(500, 500))  # Set the icon size
+        logo.setFixedSize(500, 500)
+        layout.addWidget(logo)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        spacer = QSpacerItem(20, 100, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        layout.addItem(spacer)
+
 
 
     def __create_menu(self):
@@ -92,7 +115,6 @@ class MainWindow(QMainWindow):
         action_menu.addAction(button_convert)
         action_menu.addMenu(calculate_distances_menu)
 
-
     def onManualDistances(self):
         dialog = FileDialogManual()
         dialog.exec()
@@ -103,12 +125,8 @@ class MainWindow(QMainWindow):
     def onCalculateDistances(self, splice_type):
         print(f"Calculating distances for {splice_type}")
 
-
-def main():
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
-
-if __name__ == "__main__":
-    main()
