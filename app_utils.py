@@ -27,8 +27,11 @@ class FileDialog(QDialog):
 
    
     def open_file_dialog(self):
+        """
+        Method that opens a file dialog to select a file.
+        There are filters for CSV, TSV and Excel files.
+        """
         file_dialog = QFileDialog()
-        file_dialog.setNameFilter("Tableau CSV (*.csv);;Tableau TSV (*.tsv);;Tableau Excel (*.xlsx)")
-        file_path, _ = file_dialog.getOpenFileName(self, "Open File", "", "Tableau CSV (*.csv);;Tableau TSV (*.tsv);;Tableau Excel (*.xlsx)")
+        file_path, _ = file_dialog.getOpenFileName(self, "Open File", "", "CSV Table (*.csv);;TSV table (*.tsv);;Excel Table (*.xlsx)")
         if file_path:
             self.label.setText(f"Fichier sélectionné : {file_path}")
