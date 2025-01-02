@@ -1,13 +1,14 @@
 import sys
 from PyQt6.QtWidgets import (
     QMainWindow, QApplication, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
-    QLabel, QToolBar, QMessageBox, QDialog, QFileDialog, QComboBox
+    QLabel, QPlainTextEdit, QMessageBox, QDialog, QFileDialog, QComboBox
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 from GLOBAL import *
 import os
 import pandas as pd
+from distances import Distances
 
 class FileDialogManual(QDialog):
     def __init__(self):
@@ -103,15 +104,14 @@ class FileDialogManual(QDialog):
         file_path, _ = file_dialog.getOpenFileName(self, "Open File", "", "CSV Table (*.csv);;TSV table (*.tsv);;Excel Table (*.xlsx)")
         if file_path:
             label.setText(f"Selected file : {os.path.basename(file_path)}")
-            if file_path.endswith(".csv"):
-                if file_number == 1: # récupère le premier fichier de référence
-                    self.first_separator_label.setVisible(True)
-                    self.first_separator_combo.setVisible(True)
-                    self.file_dict["reference"] = file_path
-                elif file_number == 2: # deucième fichier contenant les distances
-                    self.second_separator_label.setVisible(True)
-                    self.second_separator_combo.setVisible(True)
-                    self.file_dict["second"] = file_path
+            if file_number == 1: # récupère le premier fichier de référence
+                self.first_separator_label.setVisible(True)
+                self.first_separator_combo.setVisible(True)
+                self.file_dict["reference"] = file_path
+            elif file_number == 2: # deuxième fichier contenant les distances
+                self.second_separator_label.setVisible(True)
+                self.second_separator_combo.setVisible(True)
+                self.file_dict["second"] = file_path
 
     def validate_files(self):
         """
@@ -121,12 +121,93 @@ class FileDialogManual(QDialog):
             self.show_alert("Error", "Both files must be selected.")
             return
         try:
-            df_ref = pd.read_csv(self.file_dict["reference"], sep=self.first_separator_combo.currentText().split(" | ")[1], engine = "python")
-            df_second = pd.read_csv(self.file_dict["second"], sep=self.second_separator_combo.currentText().split(" | ")[1], engine = "python")
+            if self.file_dict["reference"].endswith(".csv"):
+                self.df_ref = pd.read_csv(self.file_dict["reference"], sep=self.first_separator_combo.currentText().split(" | ")[1], engine = "python")
+            if self.file_dict["second"].endswith(".csv"):
+                self.df_second = pd.read_csv(self.file_dict["second"], sep=self.second_separator_combo.currentText().split(" | ")[1], engine = "python")
+            if self.file_dict["reference"].endswith(".tsv"):
+                self.df_ref = pd.read_csv(self.file_dict["reference"], sep="\t", engine = "python")
+            if self.file_dict["second"].endswith(".tsv"):
+                self.df_second = pd.read_csv(self.file_dict["second"], sep="\t", engine = "python")
+            if self.file_dict["reference"].endswith(".xlsx"):
+                self.df_ref = pd.read_excel(self.file_dict["reference"])
+            if self.file_dict["second"].endswith(".xlsx"):
+                self.df_second = pd.read_excel(self.file_dict["second"])
+            self.validate_button.setVisible(False)
+            self.show_column_selection()
         except Exception as e:
             self.show_alert("Error", f"Failed to read files: {e}")
             return
         
+    def show_column_selection(self):
+        """
+        Method to display column selection widgets for comparing columns from the two dataframes.
+        """
+        self.compare_pairs = []  # Liste pour stocker les paires de colonnes
+
+        group_compare = QGroupBox("Column comparison")
+        group_layout = QVBoxLayout(group_compare)
+
+        self.column_selection_label = QLabel("Select columns to compare:")
+        group_layout.addWidget(self.column_selection_label)
+
+        self.column_combo_ref = QComboBox()
+        self.column_combo_ref.addItems(self.df_ref.columns)
+        group_layout.addWidget(self.column_combo_ref)
+
+        self.column_combo_second = QComboBox()
+        self.column_combo_second.addItems(self.df_second.columns)
+        group_layout.addWidget(self.column_combo_second)
+
+        # Zone de texte pour afficher les paires
+        self.comparison_label = QLabel("Comparison pairs:")
+        self.comparison_text = QPlainTextEdit()
+        self.comparison_text.setReadOnly(True)
+        group_layout.addWidget(self.comparison_text)
+        group_layout.addWidget(self.comparison_text)
+
+        self.button_compare_box = QHBoxLayout()
+
+        # Bouton d'ajout de comparaison
+        self.add_comparison_button = QPushButton("Add comparison")
+        self.add_comparison_button.clicked.connect(self.add_comparison)
+        self.button_compare_box.addWidget(self.add_comparison_button)
+
+        # Bouton "Compare"
+        self.compare_button = QPushButton("Compare")
+        self.compare_button.clicked.connect(self.compare_columns)
+        self.button_compare_box.addWidget(self.compare_button)
+
+        group_layout.addLayout(self.button_compare_box)
+        self.layout().addWidget(group_compare)
+
+
+    def add_comparison(self):
+        """
+        Ajoute la paire de colonnes choisie dans une zone de texte si elle n'existe pas déjà.
+        """
+        col_ref = self.column_combo_ref.currentText()
+        col_second = self.column_combo_second.currentText()
+        pair = f"{col_ref} - {col_second}"
+
+        if pair not in self.compare_pairs:
+            self.compare_pairs.append(pair)
+            self.comparison_text.appendPlainText(pair)
+        else:
+            self.show_alert("Info", f"The pair '{pair}' already exists.")
+
+    def compare_columns(self):
+        """
+        Compare toutes les paires stockées dans self.compare_pairs.
+        """
+        # # Exemples d'itération des paires
+        comparison_list = []
+        for pair in self.compare_pairs:
+            couple = tuple(pair.split(" - "))
+            comparison_list.append(couple)
+        dist = Distances()
+        dist.start_manual(self.df_ref, self.df_second, comparison_list)
+
     def show_alert(self, title: str, message: str):
         """
         Method to display an alert dialog with a title and a specific message.
