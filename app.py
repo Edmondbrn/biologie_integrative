@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
+from app_utils import FileDialog
 
 ICON_PATH = "Ressources/Icones/fugue-icons-3.5.6/icons/"
 
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow):
         calculate_distances_menu.addAction(action_all_splicing)
 
         action_manual = QAction("Manual calculation", self)
-        action_manual.triggered.connect(lambda: self.onCalculateDistances("manual"))
+        action_manual.triggered.connect(lambda: self.onManualDistances())
         action_manual.setStatusTip("Calculate distances manually")
         calculate_distances_menu.addAction(action_manual)
 
@@ -91,7 +92,9 @@ class MainWindow(QMainWindow):
         action_menu.addMenu(calculate_distances_menu)
 
 
-
+    def onManualDistances(self):
+        dialog = FileDialog()
+        dialog.exec()
 
 
     def onMyToolBarButtonClick(self, s):
