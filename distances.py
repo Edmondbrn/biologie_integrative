@@ -35,11 +35,12 @@ class Distances():
         this.__data_prot = pd.read_csv(file_name, sep = sep)
         this.__data_prot["start_genomic"] = this.__data_prot["start_genomic"].apply(ast.literal_eval)
         this.__data_prot["end_genomic"] = this.__data_prot["end_genomic"].apply(ast.literal_eval)
-        this.__FilterDataProt()
+        this.__data_prot = this.__FilterDataProt(this.__data_prot)
 
-    def __FilterDataProt(this):
-        # enlever les lignes avec des str sur la colonne start_ensembl
-        this.__data_prot = this.__data_prot[(this.__data_prot["start_ensembl"] != "Not found") | (this.__data_prot["start_ensembl"] != "unknown")]
+    def __FilterDataProt(this, df_prot : pd.DataFrame) -> pd.DataFrame:
+        # enleve les lignes avec des str sur la colonne start_ensembl
+        df_prot = df_prot.loc[df_prot["start_ensembl"].apply(lambda x: x.isnumeric())]
+        return df_prot
 
     
     def __LoadDataSplicing(this, path : str, sep : str = "\t") -> pd.DataFrame:
@@ -504,94 +505,59 @@ class Distances():
 
     @staticmethod
     @njit(fastmath = True)
-    def ComputeDistanceManual(
-        sites_array: np.ndarray,
-        data_same_gene_array: np.ndarray,
-        exon_pos_list_array: np.ndarray,  
-        comparison_couples  # éventuellement en List ou Tuple
-    ):
-        nb_couple = len(comparison_couples)
+    def ComputeDistanceManual(coord : np.ndarray[np.ndarray[int]], 
+                              exon_pos_list : list[tuple[int, int]]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        # initialisation des tableaux numpy pour stocker les résultats
+        nb_couple = coord.shape[0]
         dist = np.zeros(nb_couple * 2, dtype=np.int64)
         flag = np.zeros(nb_couple * 2, dtype=np.bool_)
         err_message = np.zeros(nb_couple * 2, dtype=np.int64)
-
-        for y, couple in enumerate(comparison_couples):
-            # Par exemple, si couple[0] et couple[1] sont déjà des indices entiers,
-            # vous pouvez faire :
-            idx_a = couple[0]
-            idx_b = couple[1]
-            
-            dist[y] = sites_array[idx_a] - data_same_gene_array[idx_b]
-
-            dist[nb_couple + y], flag[nb_couple + y], err_message[nb_couple + y] = convert_dna_to_rna(
-                sites_array[idx_a],
-                data_same_gene_array[idx_b],
-                dist[y],
-                exon_pos_list_array
+        # parcours des différents couples de coordonnées pour les calculs
+        for line in range(nb_couple):
+            dist[line] = coord[line][0] - coord[line][1]
+            dist[nb_couple + line], flag[nb_couple + line], err_message[nb_couple + line] = convert_dna_to_rna(
+                coord[line][0],
+                coord[line][1],
+                dist[line],
+                exon_pos_list
             )
-
         return dist, flag, err_message
 
 
-    def start_manual(
-        this,
-        df_ref: pd.DataFrame,
-        df_second: pd.DataFrame,
-        comparison_couples: list[tuple[str]]
-    ):
+    def start_manual(this,df_ref: pd.DataFrame,
+                     df_second: pd.DataFrame,
+                     comparison_couples: list[tuple[str]]) -> None:
         """
         Méthode principale pour lancer tous les calculs de distances 'manuelles'.
         """
-        this.__data_prot = df_ref
-        this.__data_splicing = df_second
+        this.__data_prot : pd.DataFrame = df_ref
+        this.__data_prot = this.__FilterDataProt(this.__data_prot) # enlève les lignes avec des valeurs manquantes
+        this.__data_splicing : pd.DataFrame = df_second
         results_dna, results_rna = [], []
-        for idx, row_ref in this.__data_prot.iterrows():
-            idx_couple = []
-            for couple in comparison_couples:
-                idx_site = df_ref.columns.get_loc(couple[0])
-                idx_data = df_second.columns.get_loc(couple[1])
-                idx_couple.append((idx_site, idx_data))
-            idx_couple = np.array(idx_couple)
-            this.transcript = this.__bdd.transcript_by_id(row_ref["ensembl_id"])
-            this.exon_pos_list = this.transcript.exon_intervals
-            data_same_gene = this.__data_splicing.loc[this.__data_splicing["GeneID"] == row_ref["GeneID"]]
-            for i in range(data_same_gene.shape[0]):
-                line_of_interest = data_same_gene.iloc[i]
-                sites_array = np.zeros(len(row_ref), dtype=np.int64)
-                data_array = np.zeros(len(line_of_interest), dtype=np.int64)
-
-                for idx_site, idx_data in idx_couple:
-                    site_value = row_ref.iloc[idx_site]
-                    data_value = line_of_interest.iloc[idx_data]
-
-                    if isinstance(site_value, str):
-                        site_value = ast.literal_eval(site_value)
-                    if isinstance(data_value, str):
-                        data_value = ast.literal_eval(data_value)
-
-                    if isinstance(site_value, list):
-                        site_value = site_value[0]
-                    if isinstance(data_value, list):
-                        data_value = data_value[0]
-
-                    sites_array[idx_site] = site_value
-                    data_array[idx_data] = data_value
-
-                dist_array, flag_array, err_message_array = Distances.ComputeDistanceManual(
-                    sites_array,
-                    data_array,
-                    np.array(this.exon_pos_list),
-                    idx_couple
-                )
-
+        nb_couple = len(comparison_couples)
+        for i in range(len(this.__data_prot)): # parcours des différentes lignes de la table de fixation des protéines
+            row_ref = this.__data_prot.iloc[i] # stocke la ligne pour la lisibilité
+            print(row_ref["start_ensembl"], row_ref["ensembl_id"])
+            # on récupère les coordonnées des exons
+            transcript : pb.Transcript = this.__bdd.transcript_by_id(row_ref["ensembl_id"])
+            exon_pos_list = transcript.exon_intervals
+            # filtre les données pour limiter les calculs
+            df_same_gene : pd.DataFrame = this.__data_splicing.loc[this.__data_splicing["GeneID"] == row_ref["GeneID"]]
+            for y in range(len(df_same_gene)): # parcours des différentes lignes du 2e tableau
+                row_compare = df_same_gene.iloc[y]
+                idx_couple = []
+                for couple in comparison_couples: # on parcours les différentes combinaisons à effectuer
+                    array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                    idx_couple.append(array_coord)
+                idx_couple = np.array(idx_couple) # conversion en matrice numpy pour les performances
+                # Calcul des distances ADN et ARN
+                dist_array, flag_array, err_message_array = Distances.ComputeDistanceManual(idx_couple, exon_pos_list)
                 row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
-                nb_couple = len(comparison_couples)
-                for y, couple in enumerate(comparison_couples):
-                    row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[y]
-
                 rna_indices = {}
                 for y, couple in enumerate(comparison_couples):
-                    rna_indices[nb_couple + y] = f"{couple[0]}-{couple[1]}"
+                    row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[y] # construction des lignes pour le DataFrame final de l'ADN
+                    rna_indices[nb_couple + y] = f"{couple[0]}-{couple[1]}" # construction des indices pour les distances ARN
+
                 row_rna = this.__fill_rna_row(
                     rna_indices,
                     dist_array,
@@ -600,13 +566,10 @@ class Distances():
                     row_ref["ensembl_id"],
                     row_ref["seq"]
                 )
-
                 results_dna.append(row_dna)
                 results_rna.append(row_rna)
-
         df_dna = pd.DataFrame(results_dna)
         df_rna = pd.DataFrame(results_rna)
-
         this.__CreateDistanceFile(df_dna, "manual")
         this.__CreateDistanceFile(df_rna, "manual", "RNA")
                  
@@ -618,9 +581,11 @@ if __name__ == "__main__":
     # for splice_type in splice_types:
     #     dist.start(path_splicing = "filteredRmats", splice_type = splice_type)
     #     print(f"Distances for {splice_type} computed")
-
-    df_ref = pd.read_csv("data_filteredFMRP.tsv", sep = "\t")
+    import time
+    df_ref = pd.read_csv("data_filteredfinal.tsv", sep = "\t")
     df_2nd = pd.read_csv("filteredRmats/A5SS_+.csv", sep = "\t")
     couple_comparison = [("start_genomic", "shortSplice"), ("end_genomic", "longSplice"), ("start_genomic", "longSplice")]
+    debut = time.time()
     dist.start_manual(df_ref, df_2nd, couple_comparison)
+    print(time.time() - debut)
   
