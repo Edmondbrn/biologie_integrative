@@ -505,7 +505,7 @@ class Distances():
         this.ComputeDistance(splice_type)
 
     @staticmethod
-    @njit(fastmath = True)
+    @njit(cache = True, fastmath = True)
     def ComputeDistanceManual(coord : np.ndarray[np.ndarray[int]], 
                               exon_pos_list : list[tuple[int, int]]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         # initialisation des tableaux numpy pour stocker les résultats
