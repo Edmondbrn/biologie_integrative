@@ -4,6 +4,7 @@ import numpy as np
 import ast
 import pyensembl as pb
 from numba import njit
+from multiprocessing import Pool, cpu_count
 import pyensembl as pb
 from distances_utils import convert_dna_to_rna
 
@@ -537,7 +538,6 @@ class Distances():
         nb_couple = len(comparison_couples)
         for i in range(len(this.__data_prot)): # parcours des différentes lignes de la table de fixation des protéines
             row_ref = this.__data_prot.iloc[i] # stocke la ligne pour la lisibilité
-            print(row_ref["start_ensembl"], row_ref["ensembl_id"])
             # on récupère les coordonnées des exons
             transcript : pb.Transcript = this.__bdd.transcript_by_id(row_ref["ensembl_id"])
             exon_pos_list = transcript.exon_intervals
@@ -572,6 +572,103 @@ class Distances():
         df_rna = pd.DataFrame(results_rna)
         this.__CreateDistanceFile(df_dna, "manual")
         this.__CreateDistanceFile(df_rna, "manual", "RNA")
+
+    def warmup_numba(this) -> None:
+        # Jeu de données factice pour compiler Numba avant la parallélisation.
+        coord = np.array([[100, 90]], dtype=np.int64)  # un seul couple
+        exon_pos_list = [(50, 70)]
+        _dist, _flag, _err = Distances.ComputeDistanceManual(coord, exon_pos_list)
+        return
+
+    
+    def process_chunk(this,
+                      df_chunk: pd.DataFrame,
+                      df_splicing: pd.DataFrame,
+                      comparison_couples: list[tuple[str]]) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Fonction qui applique la logique de start_manual sur un sous-ensemble (chunk) de df_ref.
+        Elle renvoie deux DataFrame : (df_dna, df_rna)
+        """
+        results_dna = []
+        results_rna = []
+
+        # On parcourt le chunk local (au lieu de self.__data_prot complet)
+        for i in range(len(df_chunk)):
+            row_ref = df_chunk.iloc[i]
+            
+            # Récupération du Transcript et des exons
+            transcript = this.__bdd.transcript_by_id(row_ref["ensembl_id"])
+            exon_pos_list = transcript.exon_intervals
+
+            # Filtre sur df_splicing
+            df_same_gene = df_splicing.loc[df_splicing["GeneID"] == row_ref["GeneID"]]
+
+            for y in range(len(df_same_gene)):
+                row_compare = df_same_gene.iloc[y]
+                idx_couple = []
+                for couple in comparison_couples:
+                    array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                    idx_couple.append(array_coord)
+                idx_couple = np.array(idx_couple)
+                
+                # Calcul des distances
+                dist_array, flag_array, err_message_array = Distances.ComputeDistanceManual(idx_couple, exon_pos_list)
+
+                # Construire la ligne "ADN"
+                row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
+                rna_indices = {}
+                for i_couple, couple in enumerate(comparison_couples):
+                    row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[i_couple]
+                    rna_indices[len(comparison_couples) + i_couple] = f"{couple[0]}-{couple[1]}"
+
+                # Construire la ligne "ARN"
+                row_rna = this.__fill_rna_row(
+                    rna_indices,
+                    dist_array,
+                    flag_array,
+                    err_message_array,
+                    row_ref["ensembl_id"],
+                    row_ref["seq"]
+                )
+
+                results_dna.append(row_dna)
+                results_rna.append(row_rna)
+
+        df_dna = pd.DataFrame(results_dna)
+        df_rna = pd.DataFrame(results_rna)
+
+        return df_dna, df_rna
+    
+    def parallel_start_manual(this,
+                              df_ref: pd.DataFrame,
+                              df_splicing: pd.DataFrame,
+                              comparison_couples: list[tuple[str]],
+                              n_cores : int = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Parallélise la logique de calcul sur df_ref en le découpant en plusieurs chunks.
+        """
+        if n_cores is None:
+            n_cores = cpu_count()  # utilise tous les cœurs disponibles, ou définissez un nombre
+
+        # Découper df_ref en n_cores (ou moins si df_ref est petit).
+        df_ref = this.__FilterDataProt(df_ref)
+        chunk_size = len(df_ref) // n_cores + 1
+        chunks = [df_ref.iloc[i : i + chunk_size] for i in range(0, len(df_ref), chunk_size)]
+        
+        # Pour chaque chunk, on appelle process_chunk en parallèle
+        with Pool(n_cores) as pool:
+            results = pool.starmap(
+                this.process_chunk,
+                [(chunk, df_splicing, comparison_couples) for chunk in chunks]
+            )
+
+        # results est une liste de tuples (df_dna, df_rna) pour chaque chunk
+        df_dna_concat = pd.concat([res[0] for res in results], ignore_index=True)
+        df_rna_concat = pd.concat([res[1] for res in results], ignore_index=True)
+        df_rna_concat.to_csv("rna_manual_parallel.csv", sep = "\t", index = False)
+        df_dna_concat.to_csv("dna_manual_parallel.csv", sep = "\t", index = False)
+
+
                  
 
 if __name__ == "__main__":
@@ -585,7 +682,9 @@ if __name__ == "__main__":
     df_ref = pd.read_csv("data_filteredfinal.tsv", sep = "\t")
     df_2nd = pd.read_csv("filteredRmats/A5SS_+.csv", sep = "\t")
     couple_comparison = [("start_genomic", "shortSplice"), ("end_genomic", "longSplice"), ("start_genomic", "longSplice")]
+    dist.warmup_numba() # compile numba avant la parallélisation
     debut = time.time()
-    dist.start_manual(df_ref, df_2nd, couple_comparison)
+    # dist.start_manual(df_ref, df_2nd, couple_comparison)
+    dist.parallel_start_manual(df_ref, df_2nd, couple_comparison, n_cores = 4)
     print(time.time() - debut)
   

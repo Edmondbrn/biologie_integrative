@@ -1,7 +1,7 @@
 from numba import njit
 
 
-@njit
+@njit(cache = True, fastmath = True)
 def get_intron_coord(exon_pos_list):
     """
     Retourne la liste des introns (start, end) à partir d'une liste
@@ -13,11 +13,11 @@ def get_intron_coord(exon_pos_list):
         introns.append((exon_pos_list[i][1] + 1, exon_pos_list[i+1][0] - 1))
     return introns
 
-@njit
+@njit(cache = True, fastmath = True)
 def get_intron_length(intron_start: int, intron_end: int) -> int:
     return max(0, intron_end - intron_start)  # évite négatif si chevauchement inattendu
 
-@njit
+@njit(cache = True, fastmath = True)
 def _check_second_coordinate(max_coord: int,
                              i: int,
                              tot_exon: int,
@@ -83,7 +83,7 @@ def _check_second_coordinate(max_coord: int,
     
     return 0, False, 3
 
-@njit
+@njit(cache = True, fastmath = True)
 def convert_dna_to_rna( prot_coordinate: int,
                         splice_coordinate: int,
                         dna_distance: int,
