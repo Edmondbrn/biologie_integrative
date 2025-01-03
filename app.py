@@ -8,7 +8,7 @@ from PyQt6.QtCore import Qt, QSize
 from app_utils import FileDialogManual
 from GLOBAL import *
 
-ICON_PATH = "Ressources/Icones/fugue-icons-3.5.6/icons/"
+
 
 def load_stylesheet(file_path):
     with open(file_path, "r") as file:
