@@ -210,16 +210,16 @@ class SequenceFinder():
         """
         Method to add the genomic coordinates to the DataFrame
         """
-        start_list = {"start_genomic" : list()}
-        end_list = {"end_genomic" : list()}
+        start_list = {"start_genomic_complete" : list()}
+        end_list = {"end_genomic_complete" : list()}
         for coord in coord_list.keys():
             start_tuple = list()
             end_tuple = list()
             for tuple_position in coord_list[coord][1]:
                 start_tuple.append(tuple_position[0])
                 end_tuple.append(tuple_position[1])
-            start_list["start_genomic"].append(start_tuple)
-            end_list["end_genomic"].append(end_tuple)
+            start_list["start_genomic_complete"].append(start_tuple)
+            end_list["end_genomic_complete"].append(end_tuple)
         self.__data_prot = self.__data_prot.join(DataFrame(start_list))
         self.__data_prot = self.__data_prot.join(DataFrame(end_list))
         return None
@@ -236,7 +236,15 @@ class SequenceFinder():
         __dict_coord = self.__alignSequences((self.__bdd, all_dict))
         self.__addRnaCoordinates(__dict_coord)
         self.__addGenomicCoordinates(__dict_coord)
+        start_list = {"start_genomic" : list()}
+        end_list = {"end_genomic" : list()}
+        for i in range(len(self.__data_prot)):
+            start_list["start_genomic"].append(self.__data_prot.iloc[i]["start_genomic_complete"][0])
+            end_list["end_genomic"].append(self.__data_prot.iloc[i]["end_genomic_complete"][-1])
+        self.__data_prot = self.__data_prot.join(DataFrame(start_list))
+        self.__data_prot = self.__data_prot.join(DataFrame(end_list))
         self.__data_prot.to_csv("data_filteredfinal.tsv", sep = "\t", index = False)
+
         
      
         
