@@ -265,9 +265,12 @@ class FileDialogManual(QDialog):
             comparison_list.append(couple)
         dist = Distances()
         if self.choice.isChecked():
-            dist.parallel_start_manual(self.df_ref, self.df_second, comparison_list, self.thread_counter.value())
+            dist.parallel_start_manual(df_ref = self.df_ref, df_splicing = self.df_second, comparison_couples = comparison_list, 
+                                       output_dir = self.output_directory.text().split(":")[1][1:], output_basename = self.file_name_space.toPlainText()  , 
+                                       n_cores = self.thread_counter.value())
         else:
-            dist.start_manual(self.df_ref, self.df_second, comparison_list)
+            dist.start_manual(df_ref = self.df_ref, df_second = self.df_second, comparison_couples = comparison_list,
+                              output_dir = self.output_directory.text().split(":")[1][1:], output_basename = self.file_name_space.toPlainText())
 
     def show_alert(self, title: str, message: str):
         """
