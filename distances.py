@@ -29,12 +29,6 @@ class Distances():
         this.__data_splicing: dict[str, pd.DataFrame] = dict()
         this.bdd = pb.EnsemblRelease(release = ensembl_release, species = specy)  # Déclaration de la variable de classe
 
-    def LoadProgress(this, total: int) -> None:
-        """
-        Méthod to load  a progress bar.
-        """
-        this.progressbar = Progress(total)
-        this.progressbar.show()
 
     def _LoadDataProt(this, file_name : str, sep : str = "\t") -> pd.DataFrame:
         """
