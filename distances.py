@@ -60,13 +60,13 @@ class Distances():
         return df.shape[0] == 0
 
 
-    def __CreateDistanceFile(this, df : pd.DataFrame, splice_type : str, type : str = "DNA") -> None:
+    def __CreateDistanceFile(this, df : pd.DataFrame, splice_type : str, output_dir : str, file_basename : str = "distances", type : str = "DNA") -> None:
         """
         Method to create a csv file containing the distances
         """
-        if os.path.exists("distances") == False:
-            os.mkdir("distances")
-        df.to_csv(f"distances/distances_{type}_{splice_type}.csv", index = False, sep = "\t")
+        if os.path.exists(output_dir) == False:
+            os.mkdir(output_dir)
+        df.to_csv(f"{output_dir}/{file_basename}_{type}_{splice_type}.csv", index = False, sep = "\t")
 
     @staticmethod
     @njit(fastmath = True)
@@ -226,7 +226,7 @@ class Distances():
         return row_rna
 
 
-    def distanceA5SS(this, splice_type: str = "A5SS_+") -> None:
+    def distanceA5SS(this, splice_type: str = "A5SS_+",  outputdir : str = "distances/", basename : str = "distances_MXE") -> None:
         """
         Method which compute and format all the distances for the A5SS splicing
         It will create a csv file with the distances
@@ -278,13 +278,13 @@ class Distances():
         # Convertir la liste de dicts en DataFrame
         df_dna = pd.DataFrame(results_dna)
         df_rna = pd.DataFrame(results_ran)
-        this.__CreateDistanceFile(df_dna, splice_type)  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
-        this.__CreateDistanceFile(df_rna, splice_type, "RNA")  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
+        this.__CreateDistanceFile(df_dna, splice_type,outputdir, basename)
+        this.__CreateDistanceFile(df_rna, splice_type,outputdir, basename ,"RNA")
 
 
 
 
-    def distanceA3SS(this, splice_type : str = "A3SS_+") :
+    def distanceA3SS(this, splice_type : str = "A3SS_+",  outputdir : str = "distances/", basename : str = "distances_MXE") :
         """
         Method which compute and format all the distances for the A3SS splicing
         It will create a csv file with the distances
@@ -331,11 +331,11 @@ class Distances():
         # Convertir la liste de dicts en DataFrame
         df_dna = pd.DataFrame(results_dna)
         df_rna = pd.DataFrame(results_rna)
-        this.__CreateDistanceFile(df_dna, splice_type)  # Suppose qu’on modifie __CreateDistanceFile pour prendre un DataFrame complet
-        this.__CreateDistanceFile(df_rna, splice_type, "RNA") 
+        this.__CreateDistanceFile(df_dna, splice_type,outputdir, basename)
+        this.__CreateDistanceFile(df_rna, splice_type,outputdir, basename ,"RNA")
 
 
-    def distanceRI(this, splice_type: str = "RI_+") -> None:
+    def distanceRI(this, splice_type: str = "RI_+",  outputdir : str = "distances/", basename : str = "distances_MXE") -> None:
         """
         Method which compute and format all the distances for the RI splicing
         It will create a csv file with the distances
@@ -376,10 +376,10 @@ class Distances():
                 results_rna.append(row_rna)
         df_dna = pd.DataFrame(results_dna)
         df_rna = pd.DataFrame(results_rna)
-        this.__CreateDistanceFile(df_dna, splice_type)
-        this.__CreateDistanceFile(df_rna, splice_type, "RNA")
+        this.__CreateDistanceFile(df_dna, splice_type,outputdir, basename)
+        this.__CreateDistanceFile(df_rna, splice_type,outputdir, basename ,"RNA")
         
-    def distanceSE(this, splice_type: str = "SE") -> None:
+    def distanceSE(this, splice_type: str = "SE",  outputdir : str = "distances/", basename : str = "distances_MXE") -> None:
         """
         Method which compute and format all the distances for the SE splicing
         It will create a csv file with the distances
@@ -417,10 +417,10 @@ class Distances():
                 results_rna.append(row_rna)
         df_dna = pd.DataFrame(results_dna)
         df_rna = pd.DataFrame(results_rna)
-        this.__CreateDistanceFile(df_dna, splice_type)
-        this.__CreateDistanceFile(df_rna, splice_type, "RNA")
+        this.__CreateDistanceFile(df_dna, splice_type,outputdir, basename)
+        this.__CreateDistanceFile(df_rna, splice_type,outputdir, basename ,"RNA")
 
-    def distanceMXE(this, splice_type: str = "MSE") -> None:
+    def distanceMXE(this, splice_type: str = "MSE", outputdir : str = "distances/", basename : str = "distances_MXE") -> None:
         """
         Fonction pour obtenir les coordonnées des sites de splicing et les distances avec les sites de fixation des protéines
         splice_type : type de splicing
@@ -472,8 +472,8 @@ class Distances():
                 results_rna.append(row_rna)
         df_dna = pd.DataFrame(results_dna)
         df_rna = pd.DataFrame(results_rna)
-        this.__CreateDistanceFile(df_dna, splice_type)
-        this.__CreateDistanceFile(df_rna, splice_type, "RNA")
+        this.__CreateDistanceFile(df_dna, splice_type,outputdir, basename)
+        this.__CreateDistanceFile(df_rna, splice_type,outputdir, basename ,"RNA")
 
     def ComputeDistance(this, splice_type : str = "") -> dict[str : any]:
         """
@@ -527,7 +527,9 @@ class Distances():
 
     def start_manual(this,df_ref: pd.DataFrame,
                      df_second: pd.DataFrame,
-                     comparison_couples: list[tuple[str]]) -> None:
+                     comparison_couples: list[tuple[str]],
+                     output_dir : str ,
+                     file_basename : str = "distances") -> None:
         """
         Méthode principale pour lancer tous les calculs de distances 'manuelles'.
         """
@@ -570,14 +572,14 @@ class Distances():
                 results_rna.append(row_rna)
         df_dna = pd.DataFrame(results_dna)
         df_rna = pd.DataFrame(results_rna)
-        this.__CreateDistanceFile(df_dna, "manual")
-        this.__CreateDistanceFile(df_rna, "manual", "RNA")
+        this.__CreateDistanceFile(df_dna, "manual", output_dir, file_basename)
+        this.__CreateDistanceFile(df_rna, "manual", output_dir, file_basename, "RNA")
 
     def warmup_numba(this) -> None:
         # Jeu de données factice pour compiler Numba avant la parallélisation.
         coord = np.array([[100, 90]], dtype=np.int64)  # un seul couple
         exon_pos_list = [(50, 70)]
-        _dist, _flag, _err = Distances.ComputeDistanceManual(coord, exon_pos_list)
+        _, _, _ = Distances.ComputeDistanceManual(coord, exon_pos_list)
         return
 
     
@@ -643,6 +645,8 @@ class Distances():
                               df_ref: pd.DataFrame,
                               df_splicing: pd.DataFrame,
                               comparison_couples: list[tuple[str]],
+                              output_dir : str,
+                              output_basename : str = "manual",
                               n_cores : int = None) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Parallélise la logique de calcul sur df_ref en le découpant en plusieurs chunks.
@@ -665,8 +669,10 @@ class Distances():
         # results est une liste de tuples (df_dna, df_rna) pour chaque chunk
         df_dna_concat = pd.concat([res[0] for res in results], ignore_index=True)
         df_rna_concat = pd.concat([res[1] for res in results], ignore_index=True)
-        df_rna_concat.to_csv("rna_manual_parallel.csv", sep = "\t", index = False)
-        df_dna_concat.to_csv("dna_manual_parallel.csv", sep = "\t", index = False)
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+        df_rna_concat.to_csv(f"{output_dir}/rna_{output_basename}.csv", sep = "\t", index = False)
+        df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.csv", sep = "\t", index = False)
 
 
                  

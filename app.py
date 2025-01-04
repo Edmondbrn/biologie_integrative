@@ -6,16 +6,15 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt, QSize
-from app_utils import FileDialogManual
+from manual_distances_window import FileDialogManual
 from GLOBAL import *
 
 from distances import *
+from app_utils import load_stylesheet
 
 ICON_PATH = "Ressources/Icones/fugue-icons-3.5.6/icons/"
 
-def load_stylesheet(file_path):
-    with open(file_path, "r") as file:
-        return file.read()
+
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -31,7 +30,7 @@ class MainWindow(QMainWindow):
         # Configure the window to start maximized
         self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
 
-        self.setStyleSheet(load_stylesheet("styles.qss"))
+        self.setStyleSheet(load_stylesheet("styles.css"))
 
         self.__create_menu()
 
