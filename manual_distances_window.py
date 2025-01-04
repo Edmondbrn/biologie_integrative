@@ -2,14 +2,15 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
     QLabel, QPlainTextEdit, QMessageBox, QDialog, QFileDialog, QComboBox, QCheckBox,
-    QSpinBox, QProgressBar
+    QSpinBox, QProgressBar, QSizePolicy
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 from GLOBAL import *
 import os
 import pandas as pd
-from distances import Distances, DistancesWorker
+from distances import Distances
+from DistanceWorker import DistancesWorker
 from app_utils import load_stylesheet
 
 class FileDialogManual(QDialog):
@@ -20,13 +21,13 @@ class FileDialogManual(QDialog):
 
         self.file_dict = {"reference": None, "second": None}
 
-        main_layout = QVBoxLayout(self)
+        self.main_layout = QVBoxLayout(self)
 
         # Titre
         self.label_title = QLabel("Welcome in manual distance calculation home")
         self.label_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label_title.setStyleSheet("font-size: 20px; font-weight: bold;")
-        main_layout.addWidget(self.label_title)
+        self.main_layout.addWidget(self.label_title)
 
         # ====================== SECTION FICHIER 1 =======================
 
@@ -59,7 +60,7 @@ class FileDialogManual(QDialog):
         ref_layout.addWidget(self.first_separator_label)
         ref_layout.addWidget(self.first_separator_combo)
 
-        main_layout.addWidget(group_ref)
+        self.main_layout.addWidget(group_ref)
 
         # ====================== SECTION FICHIER 2 =======================
         group_second = QGroupBox("Second file")
@@ -88,7 +89,7 @@ class FileDialogManual(QDialog):
         second_layout.addWidget(self.second_separator_label)
         second_layout.addWidget(self.second_separator_combo)
 
-        main_layout.addWidget(group_second)
+        self.main_layout.addWidget(group_second)
 
         # ====================== SECTION SELECT OUTPUT DIRECTORY AND RESULT FILE NAMEs =======================
         group_output = QGroupBox("Output")
@@ -109,15 +110,15 @@ class FileDialogManual(QDialog):
         self.file_name_space.setPlaceholderText("Enter the name of the result file")
         third_layout.addWidget(self.file_name_space)
 
-        main_layout.addWidget(group_output)
+        self.main_layout.addWidget(group_output)
 
         # ====================== SECTION BOUTON VALIDATION =======================
         # Bouton de validation
         self.validate_button = QPushButton("Validate")
         self.validate_button.clicked.connect(self.validate_files)
-        main_layout.addWidget(self.validate_button)
+        self.main_layout.addWidget(self.validate_button)
 
-        self.setLayout(main_layout)
+        self.setLayout(self.main_layout)
 
     def select_output_directory(self, dir_path : str):
         """
@@ -286,10 +287,24 @@ class FileDialogManual(QDialog):
         self.worker.finished_signal.connect(self.onCalculationFinished)
 
         # Crée la barre de progression 
-        self.progress = QProgressBar(self)
-        self.progress.setRange(0, len(self.df_ref)) 
-        self.progress.show()
-        # Lance le thread
+        # Crée la barre de progression
+        self.progress = QProgressBar()
+        self.progress.setRange(0, len(self.df_ref))
+        self.progress.setFixedWidth(300)  # Largeur fixe
+
+        # Ajouter la barre de progression au layout pour la centrer
+        # Supposons que vous ayez un layout principal self.layout() déjà existant
+        
+        # Créer un sous-layout horizontal pour centrer la barre
+        self.group_progress = QGroupBox("Progress")
+        self.progress_layout = QVBoxLayout(self.group_progress)
+        hbox = QHBoxLayout()
+        hbox.addStretch(1)
+        hbox.addWidget(self.progress, alignment=Qt.AlignmentFlag.AlignCenter)
+        hbox.addStretch(1)
+        self.progress_layout.addLayout(hbox)
+
+        self.layout().addWidget(self.group_progress)
         self.worker.start()
 
     def updateProgressBar(self, value):
@@ -297,11 +312,12 @@ class FileDialogManual(QDialog):
             self.progress.setValue(value)
 
     def onCalculationFinished(self):
-        # Traitement final une fois terminé
-        print("Calcul terminé")
         # Ferme la barre de progression ou autre
         if self.progress:
             self.progress.close()
+            self.layout().removeWidget(self.group_progress)
+            self.group_progress.deleteLater()
+            self.group_progress = None
             self.show_alert("Info", "Calculation finished")
 
     def show_alert(self, title: str, message: str):

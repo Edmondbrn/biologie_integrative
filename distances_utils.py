@@ -1,6 +1,6 @@
 from numba import njit
 import pandas as pd
-
+import numpy as np
 ERROR_DICT = {4 : "Error while converting dna to rna",
                 1 : "Not on the same transcript",
                 2 : "Second coordinate not in the transcript",
@@ -167,6 +167,25 @@ def convert_dna_to_rna( prot_coordinate: int,
     # Si on sort de la boucle sans avoir rien retourné => problème
     return 0, False, 4
 
+
+@njit(cache = True, fastmath = True)
+def ComputeDistanceManual(coord : np.ndarray[np.ndarray[int]], 
+                            exon_pos_list : list[tuple[int, int]]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    # initialisation des tableaux numpy pour stocker les résultats
+    nb_couple = coord.shape[0]
+    dist = np.zeros(nb_couple * 2, dtype=np.int64)
+    flag = np.zeros(nb_couple * 2, dtype=np.bool_)
+    err_message = np.zeros(nb_couple * 2, dtype=np.int64)
+    # parcours des différents couples de coordonnées pour les calculs
+    for line in range(nb_couple):
+        dist[line] = coord[line][0] - coord[line][1]
+        dist[nb_couple + line], flag[nb_couple + line], err_message[nb_couple + line] = convert_dna_to_rna(
+            coord[line][0],
+            coord[line][1],
+            dist[line],
+            exon_pos_list
+        )
+    return dist, flag, err_message
 
 
 

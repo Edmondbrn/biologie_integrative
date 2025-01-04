@@ -6,7 +6,7 @@ import pandas as pd
 import pyensembl as pb
 import numpy as np
 import os
-from distances import Distances
+from distances_utils import ComputeDistanceManual
 
 class DistancesWorker(QThread):
     # On déclare les signaux dans la classe
@@ -53,7 +53,7 @@ class DistancesWorker(QThread):
                     idx_couple.append(array_coord)
                 idx_couple = np.array(idx_couple) # conversion en matrice numpy pour les performances
                 # Calcul des distances ADN et ARN
-                dist_array, flag_array, err_message_array = Distances.ComputeDistanceManual(idx_couple, exon_pos_list)
+                dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
                 
                 self.progress_changed.emit(i+1)  # émettre le signal de progression
                 
