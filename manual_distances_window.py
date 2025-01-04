@@ -2,14 +2,14 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
     QLabel, QPlainTextEdit, QMessageBox, QDialog, QFileDialog, QComboBox, QCheckBox,
-    QSpinBox
+    QSpinBox, QProgressBar
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 from GLOBAL import *
 import os
 import pandas as pd
-from distances import Distances
+from distances import Distances, DistancesWorker
 from app_utils import load_stylesheet
 
 class FileDialogManual(QDialog):
@@ -252,7 +252,7 @@ class FileDialogManual(QDialog):
             self.compare_pairs.append(pair)
             self.comparison_text.appendPlainText(pair)
         else:
-            self.show_alert("Info", f"The pair '{pair}' already exists.")
+            self.show_alert("Warning", f"The pair '{pair}' already exists.")
 
     def compare_columns(self):
         """
@@ -263,23 +263,56 @@ class FileDialogManual(QDialog):
         for pair in self.compare_pairs:
             couple = tuple(pair.split(" - "))
             comparison_list.append(couple)
+        # TODO prendre en compte l'organisme et la version de ensembl ICI
         dist = Distances()
         if self.choice.isChecked():
             dist.parallel_start_manual(df_ref = self.df_ref, df_splicing = self.df_second, comparison_couples = comparison_list, 
                                        output_dir = self.output_directory.text().split(":")[1][1:], output_basename = self.file_name_space.toPlainText()  , 
                                        n_cores = self.thread_counter.value())
         else:
-            dist.start_manual(df_ref = self.df_ref, df_second = self.df_second, comparison_couples = comparison_list,
-                              output_dir = self.output_directory.text().split(":")[1][1:], output_basename = self.file_name_space.toPlainText())
+            self.startCalculation(comparison_list, dist.bdd)
+
+        
+    def startCalculation(self, comparison_list, bdd):
+        # Création du thread
+        self.worker = DistancesWorker(df_ref = self.df_ref, 
+                                   df_second = self.df_second, 
+                                   comparison_couples = comparison_list,
+                                   output_dir = self.output_directory.text().split(":")[1][1:], 
+                                   bdd = bdd,
+                                   file_basename = self.file_name_space.toPlainText())
+        
+        self.worker.progress_changed.connect(self.updateProgressBar)
+        self.worker.finished_signal.connect(self.onCalculationFinished)
+
+        # Crée la barre de progression 
+        self.progress = QProgressBar(self)
+        self.progress.setRange(0, len(self.df_ref)) 
+        self.progress.show()
+        # Lance le thread
+        self.worker.start()
+
+    def updateProgressBar(self, value):
+        if self.progress:
+            self.progress.setValue(value)
+
+    def onCalculationFinished(self):
+        # Traitement final une fois terminé
+        print("Calcul terminé")
+        # Ferme la barre de progression ou autre
+        if self.progress:
+            self.progress.close()
+            self.show_alert("Info", "Calculation finished")
 
     def show_alert(self, title: str, message: str):
         """
         Method to display an alert dialog with a title and a specific message.
         """
+        dict_logo = {"Info": QMessageBox.Icon.Information, "Error": QMessageBox.Icon.Critical, "Warning": QMessageBox.Icon.Warning}
         alert = QMessageBox()
         alert.setWindowTitle(title)
         alert.setText(message)
-        alert.setIcon(QMessageBox.Icon.Warning)
+        alert.setIcon(dict_logo[title])
         alert.setStandardButtons(QMessageBox.StandardButton.Ok)
         alert.exec()
 

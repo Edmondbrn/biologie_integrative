@@ -7,25 +7,35 @@ from numba import njit
 from multiprocessing import Pool, cpu_count
 import pyensembl as pb
 from distances_utils import convert_dna_to_rna
+from progressbar import Progress
 
 os.chdir(os.path.dirname(__file__))
 
 class Distances():
 
+
+    ERROR_DICT = {4 : "Error while converting dna to rna",
+                    1 : "Not on the same transcript",
+                    2 : "Second coordinate not in the transcript",
+                    3 : "Error while searching for the second coordinates",
+                    0 : "No problemo"}
+
     """
     This class is for computing distances between splicing sites and protein fixation site on mRNA
     """
-    ERROR_DICT = {4 : "Error while converting dna to rna",
-                  1 : "Not on the same transcript",
-                  2 : "Second coordinate not in the transcript",
-                  3 : "Error while searching for the second coordinates",
-                  0 : "No problemo"}
+
 
     def __init__(this, ensembl_release: int = 102, specy: str = "mus_musculus"):
         this.__data_prot: pd.DataFrame = pd.DataFrame()
         this.__data_splicing: dict[str, pd.DataFrame] = dict()
-        this.__bdd = pb.EnsemblRelease(release = ensembl_release, species = specy)  # Déclaration de la variable de classe
+        this.bdd = pb.EnsemblRelease(release = ensembl_release, species = specy)  # Déclaration de la variable de classe
 
+    def LoadProgress(this, total: int) -> None:
+        """
+        Méthod to load  a progress bar.
+        """
+        this.progressbar = Progress(total)
+        this.progressbar.show()
 
     def _LoadDataProt(this, file_name : str, sep : str = "\t") -> pd.DataFrame:
         """
@@ -259,7 +269,7 @@ class Distances():
                 share_sp = splicing_same_gene.iloc[j]["shareSplice"]
                 
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                transcript : pb.Transcript = this.__bdd.transcript_by_id(transcript_id) # get the transcript by the id to get exon informatinon"
+                transcript : pb.Transcript = this.bdd.transcript_by_id(transcript_id) # get the transcript by the id to get exon informatinon"
                 exon_pos_list = transcript.exon_intervals
                 # Calcul des distances
                 dist_array, flag, err_message = Distances.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp, exon_pos_list)
@@ -315,7 +325,7 @@ class Distances():
                 long_sp = splicing_same_gene.iloc[j]["longSplice"]
                 share_sp = splicing_same_gene.iloc[j]["shareSplice"]
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                transcript : pb.Transcript = this.__bdd.transcript_by_id(transcript_id)
+                transcript : pb.Transcript = this.bdd.transcript_by_id(transcript_id)
                 exon_pos_list = transcript.exon_intervals
 
                 dist_array, flag, err_message = Distances.__compute_distances(start_first, end_last, short_sp, share_sp, long_sp, exon_pos_list)
@@ -363,7 +373,7 @@ class Distances():
                 RiStart = splicing_same_gene.iloc[j]["RiStart"]
                 RiEnd = splicing_same_gene.iloc[j]["RiEnd"]
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                transcript = this.__bdd.transcript_by_id(transcript_id)
+                transcript = this.bdd.transcript_by_id(transcript_id)
                 exon_pos_list = transcript.exon_intervals
                 dist_array, flag, err_message = Distances.__compute_distances_RI(start_first, end_last, RiStart, RiEnd, exon_pos_list)
                 row_dna = {
@@ -405,7 +415,7 @@ class Distances():
                 upstreamEnd = splicing_same_gene.iloc[j]["upstreamEnd"]
                 DownstreamStart = splicing_same_gene.iloc[j]["DownstreamStart"]
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                transcript : pb.Transcript = this.__bdd.transcript_by_id(transcript_id)
+                transcript : pb.Transcript = this.bdd.transcript_by_id(transcript_id)
                 exon_pos_list = transcript.exon_intervals
                 dist_array, flag, err_message = Distances.__compute_distances_SE(start_first, end_last, upstreamEnd, DownstreamStart, exon_pos_list)
                 row_dna = {
@@ -457,7 +467,7 @@ class Distances():
                 upstreamEE = splicing_same_gene.iloc[j]["upstreamEE"]
                 downstreamES = splicing_same_gene.iloc[j]["downstreamES"]
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
-                transcript = this.__bdd.transcript_by_id(transcript_id)
+                transcript = this.bdd.transcript_by_id(transcript_id)
                 exon_pos_list = transcript.exon_intervals
                 dist_array, flag, err_message = Distances.__compute_distances_MXE(start_first, end_last, FirstExonStart, FirstExonEnd, SecondExonStart, SecondExonEnd, upstreamEE, downstreamES, exon_pos_list)
                 row_dna = {
@@ -533,15 +543,18 @@ class Distances():
         """
         Méthode principale pour lancer tous les calculs de distances 'manuelles'.
         """
+        progress_changed = pyqtSignal(int)  # signal émis lors de la progression
+        finished_signal = pyqtSignal()
         this.__data_prot : pd.DataFrame = df_ref
         this.__data_prot = this.__FilterDataProt(this.__data_prot) # enlève les lignes avec des valeurs manquantes
         this.__data_splicing : pd.DataFrame = df_second
         results_dna, results_rna = [], []
         nb_couple = len(comparison_couples)
+        this.LoadProgress(this.__data_prot.shape[0])
         for i in range(len(this.__data_prot)): # parcours des différentes lignes de la table de fixation des protéines
             row_ref = this.__data_prot.iloc[i] # stocke la ligne pour la lisibilité
             # on récupère les coordonnées des exons
-            transcript : pb.Transcript = this.__bdd.transcript_by_id(row_ref["ensembl_id"])
+            transcript : pb.Transcript = this.bdd.transcript_by_id(row_ref["ensembl_id"])
             exon_pos_list = transcript.exon_intervals
             # filtre les données pour limiter les calculs
             df_same_gene : pd.DataFrame = this.__data_splicing.loc[this.__data_splicing["GeneID"] == row_ref["GeneID"]]
@@ -554,6 +567,9 @@ class Distances():
                 idx_couple = np.array(idx_couple) # conversion en matrice numpy pour les performances
                 # Calcul des distances ADN et ARN
                 dist_array, flag_array, err_message_array = Distances.ComputeDistanceManual(idx_couple, exon_pos_list)
+                
+                progress_changed.emit(i+1)  # émettre le signal de progression
+                
                 row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
                 rna_indices = {}
                 for y, couple in enumerate(comparison_couples):
@@ -574,6 +590,7 @@ class Distances():
         df_rna = pd.DataFrame(results_rna)
         this.__CreateDistanceFile(df_dna, "manual", output_dir, file_basename)
         this.__CreateDistanceFile(df_rna, "manual", output_dir, file_basename, "RNA")
+        finished_signal.emit()  # émettre le signal de fin
 
     def warmup_numba(this) -> None:
         # Jeu de données factice pour compiler Numba avant la parallélisation.
@@ -599,7 +616,7 @@ class Distances():
             row_ref = df_chunk.iloc[i]
             
             # Récupération du Transcript et des exons
-            transcript = this.__bdd.transcript_by_id(row_ref["ensembl_id"])
+            transcript = this.bdd.transcript_by_id(row_ref["ensembl_id"])
             exon_pos_list = transcript.exon_intervals
 
             # Filtre sur df_splicing
@@ -647,7 +664,8 @@ class Distances():
                               comparison_couples: list[tuple[str]],
                               output_dir : str,
                               output_basename : str = "manual",
-                              n_cores : int = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+                              n_cores : int = None,
+                              progress_callback=None) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Parallélise la logique de calcul sur df_ref en le découpant en plusieurs chunks.
         """
@@ -669,13 +687,98 @@ class Distances():
         # results est une liste de tuples (df_dna, df_rna) pour chaque chunk
         df_dna_concat = pd.concat([res[0] for res in results], ignore_index=True)
         df_rna_concat = pd.concat([res[1] for res in results], ignore_index=True)
+        
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
-        df_rna_concat.to_csv(f"{output_dir}/rna_{output_basename}.csv", sep = "\t", index = False)
-        df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.csv", sep = "\t", index = False)
+
+        df_rna_concat.to_csv(f"{output_dir}/rna_{output_basename}.csv", sep="\t", index=False)
+        df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.csv", sep="\t", index=False)
+
+        return df_dna_concat, df_rna_concat
 
 
                  
+
+
+
+
+from PyQt6.QtCore import QThread, pyqtSignal
+from distances_utils import FilterDataProt, fill_rna_row
+class DistancesWorker(QThread):
+    # On déclare les signaux dans la classe
+    progress_changed = pyqtSignal(int)
+    finished_signal = pyqtSignal()
+
+    def __init__(self, df_ref, df_second, comparison_couples, output_dir, bdd : pb.EnsemblRelease, file_basename="distances"):
+        super().__init__()
+        self.df_ref = df_ref
+        self.df_second = df_second
+        self.comparison_couples = comparison_couples
+        self.output_dir = output_dir
+        self.bdd = bdd
+        self.file_basename = file_basename
+
+    def run(self):
+        """
+        Méthode principale qui sera lancée quand on fait .start() sur le thread.
+        """
+        # Placez votre logique "lourde" ici ou appelez une fonction
+        self.start_manual()
+
+    def start_manual(self) -> None:
+        """
+        Méthode principale pour lancer tous les calculs de distances 'manuelles'.
+        """
+        data_prot : pd.DataFrame = self.df_ref
+        data_prot = FilterDataProt(data_prot) # enlève les lignes avec des valeurs manquantes
+        data_splicing : pd.DataFrame = self.df_second
+        results_dna, results_rna = [], []
+        nb_couple = len(self.comparison_couples)
+        for i in range(len(data_prot)): # parcours des différentes lignes de la table de fixation des protéines
+            row_ref = data_prot.iloc[i] # stocke la ligne pour la lisibilité
+            # on récupère les coordonnées des exons
+            transcript : pb.Transcript = self.bdd.transcript_by_id(row_ref["ensembl_id"])
+            exon_pos_list = transcript.exon_intervals
+            # filtre les données pour limiter les calculs
+            df_same_gene : pd.DataFrame = data_splicing.loc[data_splicing["GeneID"] == row_ref["GeneID"]]
+            for y in range(len(df_same_gene)): # parcours des différentes lignes du 2e tableau
+                row_compare = df_same_gene.iloc[y]
+                idx_couple = []
+                for couple in self.comparison_couples: # on parcours les différentes combinaisons à effectuer
+                    array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                    idx_couple.append(array_coord)
+                idx_couple = np.array(idx_couple) # conversion en matrice numpy pour les performances
+                # Calcul des distances ADN et ARN
+                dist_array, flag_array, err_message_array = Distances.ComputeDistanceManual(idx_couple, exon_pos_list)
+                
+                self.progress_changed.emit(i+1)  # émettre le signal de progression
+                
+                row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
+                rna_indices = {}
+                for y, couple in enumerate(self.comparison_couples):
+                    row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[y] # construction des lignes pour le DataFrame final de l'ADN
+                    rna_indices[nb_couple + y] = f"{couple[0]}-{couple[1]}" # construction des indices pour les distances ARN
+
+                row_rna = fill_rna_row(
+                    rna_indices,
+                    dist_array,
+                    flag_array,
+                    err_message_array,
+                    row_ref["ensembl_id"],
+                    row_ref["seq"]
+                )
+                results_dna.append(row_dna)
+                results_rna.append(row_rna)
+        df_dna = pd.DataFrame(results_dna)
+        df_rna = pd.DataFrame(results_rna)
+        if not os.path.isdir(self.output_dir):
+            os.makedirs(self.output_dir)
+        df_dna.to_csv(f"{self.output_dir}/dna_{self.file_basename}.csv", sep="\t", index=False)
+        df_rna.to_csv(f"{self.output_dir}/rna_{self.file_basename}.csv", sep="\t", index=False)
+        self.finished_signal.emit()  # émettre le signal de fin
+
+
+
 
 if __name__ == "__main__":
     dist = Distances()

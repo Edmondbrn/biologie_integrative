@@ -1,5 +1,37 @@
 from numba import njit
+import pandas as pd
 
+ERROR_DICT = {4 : "Error while converting dna to rna",
+                1 : "Not on the same transcript",
+                2 : "Second coordinate not in the transcript",
+                3 : "Error while searching for the second coordinates",
+                0 : "No problemo"}
+
+def FilterDataProt(df_prot : pd.DataFrame) -> pd.DataFrame:
+    # enleve les lignes avec des str sur la colonne start_ensembl
+    df_prot = df_prot.loc[df_prot["start_ensembl"].apply(lambda x: x.isnumeric())]
+    return df_prot
+
+def fill_rna_row(rna_indices : dict, dist_array : int, flag : bool, err_message :int , 
+                    transcript_id : int, protein_sequence : str):
+    """
+    Méthode pour remplir le slignes des différents tableaux pour les distances ARN
+    """
+    row_rna = {}
+    err_message = err_message[len(err_message)//2:]  # on ne garde que la 2e moitié qui correspond aux distances ARN
+    for index, (i, col_name) in enumerate(rna_indices.items()):
+        if err_message[index] != 0:
+            # Remplacer la valeur par le message d’erreur ou un code
+            row_rna[col_name] = f"ERROR_{ERROR_DICT[err_message[index]]}"
+        elif flag[i]:
+            # Ajouter un astérisque
+            row_rna[col_name] = f"{dist_array[i]}*"
+        else:
+            # Valeur normale
+            row_rna[col_name] = dist_array[i]
+    row_rna["transcript_ID"]= transcript_id
+    row_rna["prot_seq"]= protein_sequence
+    return row_rna
 
 @njit(cache = True, fastmath = True)
 def get_intron_coord(exon_pos_list):
