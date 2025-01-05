@@ -4,7 +4,8 @@ import pandas as pd
 import pyensembl as pb
 import numpy as np
 import os
-from distances_utils import ComputeDistanceManual
+from distances_utils import ComputeDistanceManual, parallel_start_manual
+
 
 class DistancesWorker(QThread):
     # On déclare les signaux dans la classe
@@ -81,24 +82,26 @@ class DistancesWorker(QThread):
         df_rna.to_csv(f"{self.output_dir}/rna_{self.file_basename}.csv", sep="\t", index=False)
         self.finished_signal.emit()  # émettre le signal de fin
 
-from distances_utils import parallel_start_manual
 class ParallelDistancesWorker(QThread):
     progress_changed = pyqtSignal(int)
     finished_signal = pyqtSignal()
 
     def __init__(self,
-                 df_ref,
-                 df_splicing,
-                 comparison_couples,
-                 bdd,
-                 output_dir,
-                 file_basename,
+                 df_ref : pd.DataFrame,
+                 df_splicing : pd.DataFrame,
+                 comparison_couples : list[tuple[str, str]],
+                 bdd : pb.EnsemblRelease,
+                 output_dir : str,
+                 file_basename : str,
+                 n_processes : int = 4,
                  parent=None):
+        
         super().__init__(parent)
         self.df_ref = df_ref
         self.df_splicing = df_splicing
         self.comparison_couples = comparison_couples
         self.bdd = bdd
+        self.processes = n_processes
         self.output_dir = output_dir
         self.file_basename = file_basename
 
@@ -116,7 +119,7 @@ class ParallelDistancesWorker(QThread):
             bdd=self.bdd,
             output_dir=self.output_dir,
             output_basename=self.file_basename,
-            n_cores=4,  # ou ce que vous voulez
+            n_cores= self.processes ,  # ou ce que vous voulez
             progress_callback=progress_callback
         )
 

@@ -238,6 +238,26 @@ class ManualDistancesWindow(QDialog):
         self.button_compare_box.addWidget(self.compare_button)
 
         self.group_layout.addLayout(self.button_compare_box)
+
+    def addProgressBar(self):
+        # Crée la barre de progression
+        self.progress = QProgressBar()
+        self.progress.setRange(0, len(self.df_ref))
+        self.progress.setFixedWidth(300)  # Largeur fixe
+        self.progress.setFormat("Compiling...")  # Format de la barre de progression
+        self.first_update = True
+        
+        # Créer un sous-layout horizontal pour centrer la barre
+        self.group_progress = QGroupBox("Progress")
+        self.progress_layout = QVBoxLayout(self.group_progress)
+        hbox = QHBoxLayout()
+        hbox.addStretch(1)
+        hbox.addWidget(self.progress, alignment=Qt.AlignmentFlag.AlignCenter)
+        hbox.addStretch(1)
+        self.progress_layout.addLayout(hbox)
+
+        self.layout().addWidget(self.group_progress)
+        QCoreApplication.processEvents() # force le rafraichissement pour afficher compiling
         
     def show_column_selection(self):
         """
@@ -282,9 +302,6 @@ class ManualDistancesWindow(QDialog):
         dist = Distances()
         if self.choice.isChecked():
             self.startParallelCalculation(comparison_list, dist.bdd)
-            # parallel_start_manual(df_ref = self.df_ref, df_splicing = self.df_second, comparison_couples = comparison_list, bdd=dist.bdd,
-            #                       output_dir = self.output_directory.text().split(":")[1][1:], output_basename = self.file_name_space.toPlainText(), 
-            #                       n_cores = self.thread_counter.value())
         else:
             self.startCalculation(comparison_list, dist.bdd)
 
@@ -301,25 +318,37 @@ class ManualDistancesWindow(QDialog):
         self.worker.progress_changed.connect(self.updateProgressBar)
         self.worker.finished_signal.connect(self.onCalculationFinished)
 
-        # Crée la barre de progression
-        self.progress = QProgressBar()
-        self.progress.setRange(0, len(self.df_ref))
-        self.progress.setFixedWidth(300)  # Largeur fixe
-        self.progress.setFormat("Compiling...")  # Format de la barre de progression
-        self.first_update = True
-        
-        # Créer un sous-layout horizontal pour centrer la barre
-        self.group_progress = QGroupBox("Progress")
-        self.progress_layout = QVBoxLayout(self.group_progress)
-        hbox = QHBoxLayout()
-        hbox.addStretch(1)
-        hbox.addWidget(self.progress, alignment=Qt.AlignmentFlag.AlignCenter)
-        hbox.addStretch(1)
-        self.progress_layout.addLayout(hbox)
+        self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
 
-        self.layout().addWidget(self.group_progress)
-        QCoreApplication.processEvents() # force le rafraichissement pour afficher compiling
         self.worker.start()
+
+
+
+    def startParallelCalculation(self, comparison_list, bdd):
+        """
+        Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
+        """
+        self.worker = ParallelDistancesWorker(df_ref=self.df_ref,
+                                              df_splicing=self.df_second,
+                                              comparison_couples=comparison_list,
+                                              n_processes=self.thread_counter.value(),
+                                              bdd=bdd,
+                                              output_dir = self.output_directory.text().split(":")[1][1:],
+                                              file_basename=self.file_name_space.toPlainText())
+
+        self.worker.progress_changed.connect(self.updateParallelProgressBar)
+        self.worker.finished_signal.connect(self.onCalculationFinished)
+
+        self.addProgressBar()
+
+        self.worker.start()
+
+    def updateParallelProgressBar(self, rows_done: int):
+        current_value = self.progress.value()
+        self.progress.setValue(current_value + rows_done)
+        if self.progress.format() == "Compiling...":
+            # Première mise à jour, on change le format
+            self.progress.setFormat("%p%")
 
     def updateProgressBar(self, value):
         """
@@ -342,50 +371,6 @@ class ManualDistancesWindow(QDialog):
             self.group_progress.deleteLater()
             self.group_progress = None
             show_alert("Info", "Calculation finished")
-
-    def startParallelCalculation(self, comparison_list, bdd):
-        self.worker = ParallelDistancesWorker(
-            df_ref=self.df_ref,
-            df_splicing=self.df_second,
-            comparison_couples=comparison_list,
-            bdd=bdd,
-            output_dir=self.output_directory.text(),
-            file_basename=self.file_name_space.toPlainText()
-        )
-
-        self.worker.progress_changed.connect(self.updateParallelProgressBar)
-        self.worker.finished_signal.connect(self.onCalculationFinished)
-
-        # Mise en place de la barre de progression
-        self.progress = QProgressBar()
-        self.progress.setRange(0, len(self.df_ref))
-        self.progress.setFixedWidth(300)  # Largeur fixe
-        self.progress.setFormat("Compiling...")  # Format de la barre de progression
-        self.first_update = True
-        # On se base éventuellement sur len(df_ref) pour la borne max
-        self.progress.setRange(0, len(self.df_ref))
-        self.progress.setValue(0)
-        self.progress.setFormat("Compiling...")
-        # Créer un sous-layout horizontal pour centrer la barre
-        self.group_progress = QGroupBox("Progress")
-        self.progress_layout = QVBoxLayout(self.group_progress)
-        hbox = QHBoxLayout()
-        hbox.addStretch(1)
-        hbox.addWidget(self.progress, alignment=Qt.AlignmentFlag.AlignCenter)
-        hbox.addStretch(1)
-        self.progress_layout.addLayout(hbox)
-
-        self.layout().addWidget(self.group_progress)
-
-        QCoreApplication.processEvents() # force le rafraichissement pour afficher compiling
-        self.worker.start()
-
-    def updateParallelProgressBar(self, rows_done: int):
-        current_value = self.progress.value()
-        self.progress.setValue(current_value + rows_done)
-        if self.progress.format() == "Compiling...":
-            # Première mise à jour, on change le format
-            self.progress.setFormat("%p%")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

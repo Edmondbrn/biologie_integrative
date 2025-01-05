@@ -297,19 +297,16 @@ def process_chunk(df_chunk: pd.DataFrame,
 #     return df_dna_concat, df_rna_concat
 
 
-from multiprocessing import Pool
-from functools import partial
 
-def parallel_start_manual(
-    df_ref: pd.DataFrame,
-    df_splicing: pd.DataFrame,
-    comparison_couples: list[tuple[str]],
-    bdd : pb.EnsemblRelease,
-    output_dir : str,
-    output_basename : str = "manual", 
-    n_cores : int = None,
-    progress_callback=None
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+def parallel_start_manual(df_ref: pd.DataFrame,
+                          df_splicing: pd.DataFrame,
+                          comparison_couples: list[tuple[str]],
+                          bdd : pb.EnsemblRelease,
+                          output_dir : str,
+                          output_basename : str = "manual", 
+                          n_cores : int = None,
+                          progress_callback=None
+                         ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Parallélise la logique de calcul sur df_ref en le découpant en plusieurs chunks.
     Le paramètre progress_callback est une fonction de callback appelée
@@ -336,8 +333,7 @@ def parallel_start_manual(
         # On peut appeler la callback pour la progression
         if progress_callback is not None:
             progress_callback(len(df_dna_chunk)) 
-            # Par exemple, on fait progresser de +NbLignesChunk 
-            # ou +1 chunk, selon ce que vous voulez refléter
+            # on fait progresser de +NbLignesChunk 
 
     with Pool(n_cores) as pool:
         # Lancement asynchrone de chaque chunk
