@@ -46,9 +46,7 @@ class SplicingDistancesWindow(ManualDistancesWindow):
             "A3SS": self.handle_A3SS,
             "SE": self.handle_SE,
             "MXE": self.handle_MXE}
-        # Obtenir la fonction à appeler depuis le dictionnaire
-        func = switcher.get(self.splice, show_alert("Error", "Invalid splicing moihtype."))
-        # Appeler la fonction
+        func = switcher.get(self.splice, lambda : show_alert("Error", "Invalid splicing type."))
         return func()
     
     def handle_A5SS(self):
