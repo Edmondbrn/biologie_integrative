@@ -81,3 +81,44 @@ class DistancesWorker(QThread):
         df_rna.to_csv(f"{self.output_dir}/rna_{self.file_basename}.csv", sep="\t", index=False)
         self.finished_signal.emit()  # émettre le signal de fin
 
+from distances_utils import parallel_start_manual
+class ParallelDistancesWorker(QThread):
+    progress_changed = pyqtSignal(int)
+    finished_signal = pyqtSignal()
+
+    def __init__(self,
+                 df_ref,
+                 df_splicing,
+                 comparison_couples,
+                 bdd,
+                 output_dir,
+                 file_basename,
+                 parent=None):
+        super().__init__(parent)
+        self.df_ref = df_ref
+        self.df_splicing = df_splicing
+        self.comparison_couples = comparison_couples
+        self.bdd = bdd
+        self.output_dir = output_dir
+        self.file_basename = file_basename
+
+    def run(self):
+        # Définir la fonction callback que l’on passera à parallel_start_manual
+        def progress_callback(rows_done: int):
+            # Emettre le signal PyQt
+            self.progress_changed.emit(rows_done)
+
+        # Lancer la fonction
+        parallel_start_manual(
+            df_ref=self.df_ref,
+            df_splicing=self.df_splicing,
+            comparison_couples=self.comparison_couples,
+            bdd=self.bdd,
+            output_dir=self.output_dir,
+            output_basename=self.file_basename,
+            n_cores=4,  # ou ce que vous voulez
+            progress_callback=progress_callback
+        )
+
+        # Une fois fini :
+        self.finished_signal.emit()

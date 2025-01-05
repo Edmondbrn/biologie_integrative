@@ -5,13 +5,14 @@ from PyQt6.QtWidgets import (
     QSpinBox, QProgressBar
 )
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication
 from GLOBAL import *
 import os
 import pandas as pd
 from distances import Distances
-from DistanceWorker import DistancesWorker
+from DistanceWorker import DistancesWorker, ParallelDistancesWorker
 from app_utils import load_stylesheet, show_alert
+from distances_utils import parallel_start_manual
 
 class ManualDistancesWindow(QDialog):
     def __init__(self):
@@ -280,9 +281,10 @@ class ManualDistancesWindow(QDialog):
         # TODO prendre en compte l'organisme et la version de ensembl ICI
         dist = Distances()
         if self.choice.isChecked():
-            dist.parallel_start_manual(df_ref = self.df_ref, df_splicing = self.df_second, comparison_couples = comparison_list, 
-                                       output_dir = self.output_directory.text().split(":")[1][1:], output_basename = self.file_name_space.toPlainText()  , 
-                                       n_cores = self.thread_counter.value())
+            self.startParallelCalculation(comparison_list, dist.bdd)
+            # parallel_start_manual(df_ref = self.df_ref, df_splicing = self.df_second, comparison_couples = comparison_list, bdd=dist.bdd,
+            #                       output_dir = self.output_directory.text().split(":")[1][1:], output_basename = self.file_name_space.toPlainText(), 
+            #                       n_cores = self.thread_counter.value())
         else:
             self.startCalculation(comparison_list, dist.bdd)
 
@@ -316,6 +318,7 @@ class ManualDistancesWindow(QDialog):
         self.progress_layout.addLayout(hbox)
 
         self.layout().addWidget(self.group_progress)
+        QCoreApplication.processEvents() # force le rafraichissement pour afficher compiling
         self.worker.start()
 
     def updateProgressBar(self, value):
@@ -340,7 +343,49 @@ class ManualDistancesWindow(QDialog):
             self.group_progress = None
             show_alert("Info", "Calculation finished")
 
+    def startParallelCalculation(self, comparison_list, bdd):
+        self.worker = ParallelDistancesWorker(
+            df_ref=self.df_ref,
+            df_splicing=self.df_second,
+            comparison_couples=comparison_list,
+            bdd=bdd,
+            output_dir=self.output_directory.text(),
+            file_basename=self.file_name_space.toPlainText()
+        )
 
+        self.worker.progress_changed.connect(self.updateParallelProgressBar)
+        self.worker.finished_signal.connect(self.onCalculationFinished)
+
+        # Mise en place de la barre de progression
+        self.progress = QProgressBar()
+        self.progress.setRange(0, len(self.df_ref))
+        self.progress.setFixedWidth(300)  # Largeur fixe
+        self.progress.setFormat("Compiling...")  # Format de la barre de progression
+        self.first_update = True
+        # On se base éventuellement sur len(df_ref) pour la borne max
+        self.progress.setRange(0, len(self.df_ref))
+        self.progress.setValue(0)
+        self.progress.setFormat("Compiling...")
+        # Créer un sous-layout horizontal pour centrer la barre
+        self.group_progress = QGroupBox("Progress")
+        self.progress_layout = QVBoxLayout(self.group_progress)
+        hbox = QHBoxLayout()
+        hbox.addStretch(1)
+        hbox.addWidget(self.progress, alignment=Qt.AlignmentFlag.AlignCenter)
+        hbox.addStretch(1)
+        self.progress_layout.addLayout(hbox)
+
+        self.layout().addWidget(self.group_progress)
+
+        QCoreApplication.processEvents() # force le rafraichissement pour afficher compiling
+        self.worker.start()
+
+    def updateParallelProgressBar(self, rows_done: int):
+        current_value = self.progress.value()
+        self.progress.setValue(current_value + rows_done)
+        if self.progress.format() == "Compiling...":
+            # Première mise à jour, on change le format
+            self.progress.setFormat("%p%")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

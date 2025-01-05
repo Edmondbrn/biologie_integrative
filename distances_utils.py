@@ -192,12 +192,12 @@ def ComputeDistanceManual(coord : np.ndarray[np.ndarray[int]],
     return dist, flag, err_message
 
 
-def warmup_numba() -> None:
-    # Jeu de données factice pour compiler Numba avant la parallélisation.
-    coord = np.array([[100, 90]], dtype=np.int64)  # un seul couple
-    exon_pos_list = [(50, 70)]
-    _, _, _ = ComputeDistanceManual(coord, exon_pos_list)
-    return
+# def warmup_numba() -> None:
+#     # Jeu de données factice pour compiler Numba avant la parallélisation.
+#     coord = np.array([[100, 90]], dtype=np.int64)  # un seul couple
+#     exon_pos_list = [(50, 70)]
+#     _, _, _ = ComputeDistanceManual(coord, exon_pos_list)
+#     return
 
 
 def process_chunk(df_chunk: pd.DataFrame,
@@ -259,34 +259,102 @@ def process_chunk(df_chunk: pd.DataFrame,
 
     return df_dna, df_rna
 
-def parallel_start_manual(df_ref: pd.DataFrame,
-                          df_splicing: pd.DataFrame,
-                          comparison_couples: list[tuple[str]],
-                          output_dir : str,
-                          output_basename : str = "manual", n_cores : int = None
-                          ) -> tuple[pd.DataFrame, pd.DataFrame]:
+# def parallel_start_manual(df_ref: pd.DataFrame,
+#                           df_splicing: pd.DataFrame,
+#                           comparison_couples: list[tuple[str]],
+#                           bdd : pb.EnsemblRelease,
+#                           output_dir : str,
+#                           output_basename : str = "manual", n_cores : int = None
+#                           ) -> tuple[pd.DataFrame, pd.DataFrame]:
+#     """
+#     Parallélise la logique de calcul sur df_ref en le découpant en plusieurs chunks.
+#     """
+#     if n_cores is None:
+#         n_cores = cpu_count()  # utilise tous les cœurs disponibles, ou définissez un nombre
+
+#     # Découper df_ref en n_cores (ou moins si df_ref est petit).
+#     df_ref = FilterDataProt(df_ref)
+#     chunk_size = len(df_ref) // n_cores + 1
+#     chunks = [df_ref.iloc[i : i + chunk_size] for i in range(0, len(df_ref), chunk_size)]
+    
+#     # Pour chaque chunk, on appelle process_chunk en parallèle
+#     with Pool(n_cores) as pool:
+#         results = pool.starmap(
+#             process_chunk,
+#             [(chunk, df_splicing, comparison_couples, bdd) for chunk in chunks]
+#         )
+
+#     # results est une liste de tuples (df_dna, df_rna) pour chaque chunk
+#     df_dna_concat = pd.concat([res[0] for res in results], ignore_index=True)
+#     df_rna_concat = pd.concat([res[1] for res in results], ignore_index=True)
+    
+#     if not os.path.isdir(output_dir):
+#         os.makedirs(output_dir)
+
+#     df_rna_concat.to_csv(f"{output_dir}/rna_{output_basename}.csv", sep="\t", index=False)
+#     df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.csv", sep="\t", index=False)
+
+#     return df_dna_concat, df_rna_concat
+
+
+from multiprocessing import Pool
+from functools import partial
+
+def parallel_start_manual(
+    df_ref: pd.DataFrame,
+    df_splicing: pd.DataFrame,
+    comparison_couples: list[tuple[str]],
+    bdd : pb.EnsemblRelease,
+    output_dir : str,
+    output_basename : str = "manual", 
+    n_cores : int = None,
+    progress_callback=None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Parallélise la logique de calcul sur df_ref en le découpant en plusieurs chunks.
+    Le paramètre progress_callback est une fonction de callback appelée
+    à la fin de chaque chunk, pour mettre à jour la progression dans le GUI.
     """
     if n_cores is None:
-        n_cores = cpu_count()  # utilise tous les cœurs disponibles, ou définissez un nombre
+        n_cores = cpu_count()
 
-    # Découper df_ref en n_cores (ou moins si df_ref est petit).
     df_ref = FilterDataProt(df_ref)
     chunk_size = len(df_ref) // n_cores + 1
     chunks = [df_ref.iloc[i : i + chunk_size] for i in range(0, len(df_ref), chunk_size)]
     
-    # Pour chaque chunk, on appelle process_chunk en parallèle
-    with Pool(n_cores) as pool:
-        results = pool.starmap(
-            process_chunk,
-            [(chunk, df_splicing, comparison_couples) for chunk in chunks]
-        )
+    # Pour accumuler les résultats finals
+    results_dna = []
+    results_rna = []
 
-    # results est une liste de tuples (df_dna, df_rna) pour chaque chunk
-    df_dna_concat = pd.concat([res[0] for res in results], ignore_index=True)
-    df_rna_concat = pd.concat([res[1] for res in results], ignore_index=True)
-    
+    def on_chunk_done(result):
+        # Cette fonction est appelée dans le process principal 
+        # dès qu'un chunk a fini de s’exécuter
+        (df_dna_chunk, df_rna_chunk) = result
+        results_dna.append(df_dna_chunk)
+        results_rna.append(df_rna_chunk)
+        
+        # On peut appeler la callback pour la progression
+        if progress_callback is not None:
+            progress_callback(len(df_dna_chunk)) 
+            # Par exemple, on fait progresser de +NbLignesChunk 
+            # ou +1 chunk, selon ce que vous voulez refléter
+
+    with Pool(n_cores) as pool:
+        # Lancement asynchrone de chaque chunk
+        for chunk in chunks:
+            pool.apply_async(
+                process_chunk,
+                args=(chunk, df_splicing, comparison_couples, bdd),
+                callback=on_chunk_done
+            )
+        # On bloque jusqu'à ce que tout soit fini
+        pool.close()
+        pool.join()
+
+    # results_dna / results_rna sont maintenant alimentés par le callback
+    df_dna_concat = pd.concat(results_dna, ignore_index=True)
+    df_rna_concat = pd.concat(results_rna, ignore_index=True)
+
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
@@ -294,7 +362,6 @@ def parallel_start_manual(df_ref: pd.DataFrame,
     df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.csv", sep="\t", index=False)
 
     return df_dna_concat, df_rna_concat
-
 
 
 
