@@ -1,17 +1,17 @@
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
-    QLabel, QPlainTextEdit, QMessageBox, QDialog, QFileDialog, QComboBox, QCheckBox,
-    QSpinBox, QProgressBar, QSizePolicy
+    QLabel, QPlainTextEdit, QDialog, QFileDialog, QComboBox, QCheckBox,
+    QSpinBox, QProgressBar
 )
-from PyQt6.QtGui import QAction, QIcon
+
 from PyQt6.QtCore import Qt
 from GLOBAL import *
 import os
 import pandas as pd
 from distances import Distances
 from DistanceWorker import DistancesWorker
-from app_utils import load_stylesheet
+from app_utils import load_stylesheet, show_alert
 
 class FileDialogManual(QDialog):
     def __init__(self):
@@ -154,7 +154,7 @@ class FileDialogManual(QDialog):
         Method to validate the selected files and proceed to the pairwise selection for distance computation.
         """
         if not self.file_dict["reference"] or not self.file_dict["second"]:
-            self.show_alert("Error", "Both files must be selected.")
+            show_alert("Error", "Both files must be selected.")
             return
         try:
             if self.file_dict["reference"].endswith(".csv"):
@@ -172,7 +172,7 @@ class FileDialogManual(QDialog):
             self.validate_button.setVisible(False)
             self.show_column_selection()
         except Exception as e:
-            self.show_alert("Error", f"Failed to read files: {e}")
+            show_alert("Error", f"Failed to read files: {e}")
             return
         
     def show_column_selection(self):
@@ -253,7 +253,7 @@ class FileDialogManual(QDialog):
             self.compare_pairs.append(pair)
             self.comparison_text.appendPlainText(pair)
         else:
-            self.show_alert("Warning", f"The pair '{pair}' already exists.")
+            show_alert("Warning", f"The pair '{pair}' already exists.")
 
     def compare_columns(self):
         """
@@ -318,19 +318,9 @@ class FileDialogManual(QDialog):
             self.layout().removeWidget(self.group_progress)
             self.group_progress.deleteLater()
             self.group_progress = None
-            self.show_alert("Info", "Calculation finished")
+            show_alert("Info", "Calculation finished")
 
-    def show_alert(self, title: str, message: str):
-        """
-        Method to display an alert dialog with a title and a specific message.
-        """
-        dict_logo = {"Info": QMessageBox.Icon.Information, "Error": QMessageBox.Icon.Critical, "Warning": QMessageBox.Icon.Warning}
-        alert = QMessageBox()
-        alert.setWindowTitle(title)
-        alert.setText(message)
-        alert.setIcon(dict_logo[title])
-        alert.setStandardButtons(QMessageBox.StandardButton.Ok)
-        alert.exec()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
