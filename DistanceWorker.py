@@ -1,5 +1,3 @@
-
-
 from PyQt6.QtCore import QThread, pyqtSignal
 from distances_utils import FilterDataProt, fill_rna_row
 import pandas as pd

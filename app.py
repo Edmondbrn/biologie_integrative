@@ -6,7 +6,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt, QSize
-from manual_distances_window import FileDialogManual
+from manual_distances_window import ManualDistancesWindow
+from splicing_distances_window import SplicingDistancesWindow
 from GLOBAL import *
 
 from distances import *
@@ -121,14 +122,17 @@ class MainWindow(QMainWindow):
         action_menu.addMenu(calculate_distances_menu)
 
     def onManualDistances(self):
-        dialog = FileDialogManual()
+        dialog = ManualDistancesWindow()
         dialog.exec()
 
+    def onCalculateDistances(self, splice_type):
+        print(f"Calculating distances for {splice_type}")
+        dialog = SplicingDistancesWindow()
+        dialog.exec()
+        print("test")
 
     def onMyToolBarButtonClick(self, s):
         print("Button clicked", s)
-    def onCalculateDistances(self, splice_type):
-        print(f"Calculating distances for {splice_type}")
 
     def open_file_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "File Explorer", "", "All Files (*);;CSV Files (*.csv)")

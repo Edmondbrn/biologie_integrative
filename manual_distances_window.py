@@ -13,7 +13,7 @@ from distances import Distances
 from DistanceWorker import DistancesWorker
 from app_utils import load_stylesheet, show_alert
 
-class FileDialogManual(QDialog):
+class ManualDistancesWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Manual Calculation")
@@ -175,15 +175,10 @@ class FileDialogManual(QDialog):
             show_alert("Error", f"Failed to read files: {e}")
             return
         
-    def show_column_selection(self):
+    def addThreadsSelection(self):
         """
-        Method to display column selection widgets for comparing columns from the two dataframes.
+        Method to add the number of processing to use durinf the calculation.
         """
-        self.compare_pairs = []  # Liste pour stocker les paires de colonnes
-
-        group_compare = QGroupBox("Column comparison")
-        group_layout = QVBoxLayout(group_compare)
-        # ====================== Section for the multithreading layout  =======================
         box_multi = QHBoxLayout()
         self.choose_parallelisation = QLabel("Activate multithreading ? (not recommended on Windows)")
         self.choice = QCheckBox()
@@ -204,26 +199,37 @@ class FileDialogManual(QDialog):
         box_spin.addStretch(1)
         box_spin.addWidget(self.thread_counter)
         box_spin.addStretch(1)
-        group_layout.addLayout(box_multi)
-        group_layout.addLayout(box_spin)
+        self.group_layout.addLayout(box_multi)
+        self.group_layout.addLayout(box_spin)
+        
+    def show_column_selection(self):
+        """
+        Method to display column selection widgets for comparing columns from the two dataframes.
+        """
+        self.compare_pairs = []  # Liste pour stocker les paires de colonnes
+
+        self.group_compare = QGroupBox("Column comparison")
+        self.group_layout = QVBoxLayout(self.group_compare)
+        # ====================== Section for the multithreading layout  =======================
+        self.addThreadsSelection()
         # ====================== Section for the column selection layout  =======================
         self.column_selection_label = QLabel("Select columns to compare:")
-        group_layout.addWidget(self.column_selection_label)
+        self.group_layout.addWidget(self.column_selection_label)
 
         self.column_combo_ref = QComboBox()
         self.column_combo_ref.addItems(self.df_ref.columns)
-        group_layout.addWidget(self.column_combo_ref)
+        self.group_layout.addWidget(self.column_combo_ref)
 
         self.column_combo_second = QComboBox()
         self.column_combo_second.addItems(self.df_second.columns)
-        group_layout.addWidget(self.column_combo_second)
+        self.group_layout.addWidget(self.column_combo_second)
 
         # Zone de texte pour afficher les paires
         self.comparison_label = QLabel("Comparison pairs:")
         self.comparison_text = QPlainTextEdit()
         self.comparison_text.setReadOnly(True)
-        group_layout.addWidget(self.comparison_text)
-        group_layout.addWidget(self.comparison_text)
+        self.group_layout.addWidget(self.comparison_text)
+        self.group_layout.addWidget(self.comparison_text)
 
         self.button_compare_box = QHBoxLayout()
 
@@ -237,8 +243,8 @@ class FileDialogManual(QDialog):
         self.compare_button.clicked.connect(self.compare_columns)
         self.button_compare_box.addWidget(self.compare_button)
 
-        group_layout.addLayout(self.button_compare_box)
-        self.layout().addWidget(group_compare)
+        self.group_layout.addLayout(self.button_compare_box)
+        self.layout().addWidget(self.group_compare)
 
 
     def add_comparison(self):
@@ -286,14 +292,12 @@ class FileDialogManual(QDialog):
         self.worker.progress_changed.connect(self.updateProgressBar)
         self.worker.finished_signal.connect(self.onCalculationFinished)
 
-        # Crée la barre de progression 
         # Crée la barre de progression
         self.progress = QProgressBar()
         self.progress.setRange(0, len(self.df_ref))
         self.progress.setFixedWidth(300)  # Largeur fixe
-
-        # Ajouter la barre de progression au layout pour la centrer
-        # Supposons que vous ayez un layout principal self.layout() déjà existant
+        self.progress.setFormat("Compiling...")  # Format de la barre de progression
+        self.first_update = True
         
         # Créer un sous-layout horizontal pour centrer la barre
         self.group_progress = QGroupBox("Progress")
@@ -309,6 +313,9 @@ class FileDialogManual(QDialog):
 
     def updateProgressBar(self, value):
         if self.progress:
+            if self.first_update:
+                self.first_update = False
+                self.progress.setFormat("%v/%m")
             self.progress.setValue(value)
 
     def onCalculationFinished(self):
