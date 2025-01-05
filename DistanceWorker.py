@@ -58,6 +58,8 @@ class DistancesWorker(QThread):
                 row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
                 rna_indices = {}
                 for y, couple in enumerate(self.comparison_couples):
+                    row_dna[f"coord_{couple[0]}"] = row_ref[couple[0]]
+                    row_dna[f"coord_{couple[1]}"] = row_compare[couple[1]]
                     row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[y] # construction des lignes pour le DataFrame final de l'ADN
                     rna_indices[nb_couple + y] = f"{couple[0]}-{couple[1]}" # construction des indices pour les distances ARN
 

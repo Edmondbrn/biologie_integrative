@@ -453,12 +453,12 @@ class Distances():
                 23 : "prot_end_SecondExonEnd"
             }
             for j in range(splicing_same_gene.shape[0]):
-                FirstExonStart = splicing_same_gene.iloc[j]["1stExonStart"]
-                FirstExonEnd = splicing_same_gene.iloc[j]["1stExonEnd"]
-                SecondExonStart = splicing_same_gene.iloc[j]["2ndExonStart"]
-                SecondExonEnd = splicing_same_gene.iloc[j]["2ndExonEnd"]
-                upstreamEE = splicing_same_gene.iloc[j]["upstreamEE"]
-                downstreamES = splicing_same_gene.iloc[j]["downstreamES"]
+                FirstExonStart = splicing_same_gene.iloc[j]["1stExonStart"] 
+                FirstExonEnd = splicing_same_gene.iloc[j]["1stExonEnd"] 
+                SecondExonStart = splicing_same_gene.iloc[j]["2ndExonStart"] 
+                SecondExonEnd = splicing_same_gene.iloc[j]["2ndExonEnd"] 
+                upstreamEE = splicing_same_gene.iloc[j]["upstreamEE"] 
+                downstreamES = splicing_same_gene.iloc[j]["downstreamES"] 
                 transcript_id = this.__data_prot.loc[i, "ensembl_id"]
                 transcript = this.bdd.transcript_by_id(transcript_id)
                 exon_pos_list = transcript.exon_intervals

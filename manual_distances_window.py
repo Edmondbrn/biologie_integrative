@@ -201,18 +201,11 @@ class ManualDistancesWindow(QDialog):
         box_spin.addStretch(1)
         self.group_layout.addLayout(box_multi)
         self.group_layout.addLayout(box_spin)
-        
-    def show_column_selection(self):
-        """
-        Method to display column selection widgets for comparing columns from the two dataframes.
-        """
-        self.compare_pairs = []  # Liste pour stocker les paires de colonnes
 
-        self.group_compare = QGroupBox("Column comparison")
-        self.group_layout = QVBoxLayout(self.group_compare)
-        # ====================== Section for the multithreading layout  =======================
-        self.addThreadsSelection()
-        # ====================== Section for the column selection layout  =======================
+    def addColumnsSelection(self):
+        """
+        Method to add the column selection widgets for comparing columns from the two dataframes.
+        """
         self.column_selection_label = QLabel("Select columns to compare:")
         self.group_layout.addWidget(self.column_selection_label)
 
@@ -244,6 +237,20 @@ class ManualDistancesWindow(QDialog):
         self.button_compare_box.addWidget(self.compare_button)
 
         self.group_layout.addLayout(self.button_compare_box)
+        
+    def show_column_selection(self):
+        """
+        Method to display column selection widgets for comparing columns from the two dataframes.
+        """
+        self.compare_pairs = []  # Liste pour stocker les paires de colonnes
+
+        self.group_compare = QGroupBox("Column comparison")
+        self.group_layout = QVBoxLayout(self.group_compare)
+        # ====================== Section for the multithreading layout  =======================
+        self.addThreadsSelection()
+        # ====================== Section for the column selection layout  =======================
+        self.addColumnsSelection()
+
         self.layout().addWidget(self.group_compare)
 
 
@@ -312,13 +319,19 @@ class ManualDistancesWindow(QDialog):
         self.worker.start()
 
     def updateProgressBar(self, value):
+        """
+        Method which is solicited when an update emit is emitted by the worker.
+        """
         if self.progress:
             if self.first_update:
                 self.first_update = False
-                self.progress.setFormat("%v/%m")
+                self.progress.setFormat("%p%")
             self.progress.setValue(value)
 
     def onCalculationFinished(self):
+        """
+        Method which is solicited when the worker has finished its job.
+        """
         # Ferme la barre de progression ou autre
         if self.progress:
             self.progress.close()
@@ -331,5 +344,5 @@ class ManualDistancesWindow(QDialog):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    dialog = FileDialogManual()
+    dialog = ManualDistancesWindow()
     dialog.exec()

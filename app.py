@@ -126,10 +126,8 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     def onCalculateDistances(self, splice_type):
-        print(f"Calculating distances for {splice_type}")
-        dialog = SplicingDistancesWindow()
+        dialog = SplicingDistancesWindow(splice_type)
         dialog.exec()
-        print("test")
 
     def onMyToolBarButtonClick(self, s):
         print("Button clicked", s)
