@@ -31,7 +31,22 @@ class ManualDistancesWindow(QDialog):
         self.main_layout.addWidget(self.label_title)
 
         # ====================== SECTION FICHIER 1 =======================
+        self.create_reference_file_section()
+        # ====================== SECTION FICHIER 2 =======================
+        self.create_second_file_section()
 
+        # ====================== SECTION SELECT OUTPUT DIRECTORY AND RESULT FILE NAMEs =======================
+        self.create_output_section()
+
+        # ====================== SECTION BOUTON VALIDATION =======================
+        # Bouton de validation
+        self.validate_button = QPushButton("Validate")
+        self.validate_button.clicked.connect(self.validate_files)
+        self.main_layout.addWidget(self.validate_button)
+
+        self.setLayout(self.main_layout)
+
+    def create_reference_file_section(self):
         group_ref = QGroupBox("Reference file")
         ref_layout = QVBoxLayout(group_ref)
 
@@ -63,7 +78,7 @@ class ManualDistancesWindow(QDialog):
 
         self.main_layout.addWidget(group_ref)
 
-        # ====================== SECTION FICHIER 2 =======================
+    def create_second_file_section(self):
         group_second = QGroupBox("Second file")
         second_layout = QVBoxLayout(group_second)
 
@@ -92,7 +107,7 @@ class ManualDistancesWindow(QDialog):
 
         self.main_layout.addWidget(group_second)
 
-        # ====================== SECTION SELECT OUTPUT DIRECTORY AND RESULT FILE NAMEs =======================
+    def create_output_section(self):
         group_output = QGroupBox("Output")
         third_layout = QVBoxLayout(group_output)
         self.label_instruction_3 = QLabel("Please select the output directory")
@@ -102,7 +117,7 @@ class ManualDistancesWindow(QDialog):
         output_box = QHBoxLayout()
         self.output_directory = QLabel("No directory selected")
         self.button_output = QPushButton("Select output directory")
-        self.button_output.clicked.connect(lambda :self.select_output_directory("Output directory"))
+        self.button_output.clicked.connect(lambda: self.select_output_directory("Output directory"))
         output_box.addWidget(self.output_directory)
         output_box.addWidget(self.button_output)
         third_layout.addLayout(output_box)
@@ -113,13 +128,6 @@ class ManualDistancesWindow(QDialog):
 
         self.main_layout.addWidget(group_output)
 
-        # ====================== SECTION BOUTON VALIDATION =======================
-        # Bouton de validation
-        self.validate_button = QPushButton("Validate")
-        self.validate_button.clicked.connect(self.validate_files)
-        self.main_layout.addWidget(self.validate_button)
-
-        self.setLayout(self.main_layout)
 
     def select_output_directory(self, dir_path : str):
         """
@@ -142,12 +150,14 @@ class ManualDistancesWindow(QDialog):
         if file_path:
             label.setText(f"Selected file : {os.path.basename(file_path)}")
             if file_number == 1: # récupère le premier fichier de référence
-                self.first_separator_label.setVisible(True)
-                self.first_separator_combo.setVisible(True)
+                if file_path.endswith(".csv"):
+                    self.first_separator_label.setVisible(True)
+                    self.first_separator_combo.setVisible(True)
                 self.file_dict["reference"] = file_path
             elif file_number == 2: # deuxième fichier contenant les distances
-                self.second_separator_label.setVisible(True)
-                self.second_separator_combo.setVisible(True)
+                if file_path.endswith(".csv"):
+                    self.second_separator_label.setVisible(True)
+                    self.second_separator_combo.setVisible(True)
                 self.file_dict["second"] = file_path
 
     def validate_files(self):
@@ -306,14 +316,15 @@ class ManualDistancesWindow(QDialog):
             self.startCalculation(comparison_list, dist.bdd)
 
         
-    def startCalculation(self, comparison_list, bdd):
+    def startCalculation(self, comparison_list, bdd, splice_name : str = "", cpt : int = 0):
         # Création du thread
         self.worker = DistancesWorker(df_ref = self.df_ref, 
                                    df_second = self.df_second, 
                                    comparison_couples = comparison_list,
                                    output_dir = self.output_directory.text().split(":")[1][1:], 
                                    bdd = bdd,
-                                   file_basename = self.file_name_space.toPlainText())
+                                   file_basename = self.file_name_space.toPlainText() + "_" +splice_name, 
+                                   cpt = cpt)
         
         self.worker.progress_changed.connect(self.updateProgressBar)
         self.worker.finished_signal.connect(self.onCalculationFinished)
@@ -324,7 +335,7 @@ class ManualDistancesWindow(QDialog):
 
 
 
-    def startParallelCalculation(self, comparison_list, bdd):
+    def startParallelCalculation(self, comparison_list, bdd, splice_name : str = ""):
         """
         Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
         """
@@ -334,7 +345,7 @@ class ManualDistancesWindow(QDialog):
                                               n_processes=self.thread_counter.value(),
                                               bdd=bdd,
                                               output_dir = self.output_directory.text().split(":")[1][1:],
-                                              file_basename=self.file_name_space.toPlainText())
+                                              file_basename=self.file_name_space.toPlainText() + "_" + splice_name)
 
         self.worker.progress_changed.connect(self.updateParallelProgressBar)
         self.worker.finished_signal.connect(self.onCalculationFinished)

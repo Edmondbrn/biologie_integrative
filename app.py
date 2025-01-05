@@ -8,6 +8,7 @@ from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt, QSize
 from manual_distances_window import ManualDistancesWindow
 from splicing_distances_window import SplicingDistancesWindow
+from all_splicing_distances_window import AllSplicingDistancesWindow
 from GLOBAL import *
 
 from distances import *
@@ -98,7 +99,7 @@ class MainWindow(QMainWindow):
 
         # Ajoute les options all_splicing et manual
         action_all_splicing = QAction("Calculate distances for all splicing", self)
-        action_all_splicing.triggered.connect(lambda: self.onCalculateDistances("all_splicing"))
+        action_all_splicing.triggered.connect(lambda: self.onCalculateAllDistances())
         action_all_splicing.setStatusTip("Calculate distances for all splicing events")
         calculate_distances_menu.addAction(action_all_splicing)
 
@@ -129,8 +130,11 @@ class MainWindow(QMainWindow):
         dialog = SplicingDistancesWindow(splice_type)
         dialog.exec()
 
-    def onMyToolBarButtonClick(self, s):
-        print("Button clicked", s)
+    def onCalculateAllDistances(self):
+        dialog = AllSplicingDistancesWindow("all_splicing")
+        dialog.exec()
+
+
 
     def open_file_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "File Explorer", "", "All Files (*);;CSV Files (*.csv)")

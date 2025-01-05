@@ -2,7 +2,7 @@
 from manual_distances_window import ManualDistancesWindow
 from PyQt6.QtWidgets import QLabel, QPlainTextEdit, QPushButton, QHBoxLayout
 from app_utils import show_alert
-from GLOBAL import REF_COUPLE
+from GLOBAL import *
 class SplicingDistancesWindow(ManualDistancesWindow):
     
     def __init__(self, splice_type : str):
@@ -53,7 +53,7 @@ class SplicingDistancesWindow(ManualDistancesWindow):
         """
         Method to handle the A5SS+ splicing type.
         """
-        A5SS_plus_col = ["shortSplice", "longSplice", "shareSplice"]
+        A5SS_plus_col = A5SS_COL
         for col_name_ref in REF_COUPLE:
             for col_name in A5SS_plus_col:
                 self.couple.append((col_name_ref, col_name))
@@ -63,7 +63,7 @@ class SplicingDistancesWindow(ManualDistancesWindow):
         """
         Method to handle the A3SS+ splicing type.
         """
-        A3SS_plus_col = ["shortSplice", "longSplice", "shareSplice"]
+        A3SS_plus_col = A3SS_COL
         for col_name_ref in REF_COUPLE:
             for col_name in A3SS_plus_col:
                 self.couple.append((col_name_ref, col_name))
@@ -73,7 +73,7 @@ class SplicingDistancesWindow(ManualDistancesWindow):
         """
         Method to handle the RI splicing type.
         """
-        RI_col = ["RiStart", "RiEnd"]
+        RI_col = RI_COL
         for col_name_ref in REF_COUPLE:
             for col_name in RI_col:
                 self.couple.append((col_name_ref, col_name))
@@ -83,7 +83,7 @@ class SplicingDistancesWindow(ManualDistancesWindow):
         """
         Method to handle the SE splicing type.
         """
-        SE_col = ["upstreamEnd", "DownstreamStart"]
+        SE_col = SE_COL
         for col_name_ref in REF_COUPLE:
             for col_name in SE_col:
                 self.couple.append((col_name_ref, col_name))
@@ -93,7 +93,7 @@ class SplicingDistancesWindow(ManualDistancesWindow):
         """
         Method to handle the MXE splicing type.
         """
-        MXE_col = ["1stExonStart", "1stExonEnd", "2ndExonStart", "2ndExonEnd", "upstreamEE", "downstreamES"]
+        MXE_col = MXE_COL
         for col_name_ref in REF_COUPLE:
             for col_name in MXE_col:
                 self.couple.append((col_name_ref, col_name))
