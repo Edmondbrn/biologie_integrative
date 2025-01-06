@@ -7,10 +7,12 @@ from PyQt6.QtWidgets import (
     QLabel, QPlainTextEdit, QComboBox, QFileDialog, QProgressBar,
 )
 
-from PyQt6.QtCore import Qt, QCoreApplication
+from PyQt6.QtCore import Qt
 import pandas as pd
 import os
 from distances import Distances
+from DistanceWorkerAll import DistancesWorkerAll
+from distances_utils import FilterDataProt
 
 class AllSplicingDistancesWindow(ManualDistancesWindow):
     
@@ -139,32 +141,64 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
                         self.dict_splice_couples[splice].append((col_name_ref, col_name))
         return self.couple
     
+ 
+    
     def compare_columns(self):
         """
         Compare toutes les paires stockées dans self.compare_pairs.
         """
         # Get all the pairs in a correct format for the Distances class
-        cpt = 0
-        for splice, data_file in self.dict_splicing_files.items():
-            comparison_list = self.dict_splice_couples[splice]
-            self.df_second = data_file
-            # TODO prendre en compte l'organisme et la version de ensembl ICI
-            dist = Distances()
-            if self.choice.isChecked():
-                self.startParallelCalculation(comparison_list, dist.bdd, data_file)
-            else:
-                self.startCalculation(comparison_list, dist.bdd, splice, cpt)
-            cpt += len(data_file)
+        # TODO prendre en compte l'organisme et la version de ensembl ICI
+        dist = Distances()
+        if self.choice.isChecked():
+            self.startParallelCalculation(dist.bdd)
+        else:
+            self.startCalculation(dist.bdd)
+
+    def startCalculation(self,bdd):
+        # Création du thread
+        self.worker = DistancesWorkerAll(df_ref = self.df_ref, 
+                                         input_df = self.dict_splicing_files, 
+                                         comparison_couples = self.dict_splice_couples,
+                                         output_dir = self.output_directory.text().split(":")[1][1:], 
+                                         bdd = bdd,
+                                         file_basename = self.file_name_space.toPlainText())
+        
+        self.worker.progress_changed.connect(self.updateProgressBar)
+        self.worker.finished_signal.connect(self.onCalculationFinished)
+
+        self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
+
+        self.worker.start()
+
+    # def startParallelCalculation(self, comparison_list, bdd, splice_name : str = ""):
+    #     """
+    #     Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
+    #     """
+    #     self.worker = ParallelDistancesWorker(df_ref=self.df_ref,
+    #                                           df_splicing=self.df_second,
+    #                                           comparison_couples=comparison_list,
+    #                                           n_processes=self.thread_counter.value(),
+    #                                           bdd=bdd,
+    #                                           output_dir = self.output_directory.text().split(":")[1][1:],
+    #                                           file_basename=self.file_name_space.toPlainText() + "_" + splice_name)
+
+    #     self.worker.progress_changed.connect(self.updateParallelProgressBar)
+    #     self.worker.finished_signal.connect(self.onCalculationFinished)
+
+    #     self.addProgressBar()
+
+    #     self.worker.start()
+
 
     def addProgressBar(self):
         # Crée la barre de progression
         self.progress = QProgressBar()
-        total_row_files = 0
-        for _, data_file in self.dict_splicing_files.items():
-            total_row_files += len(data_file)
-        self.progress.setRange(0, total_row_files)
+        num_splicing_files = len(self.dict_splicing_files)
+        total = len(FilterDataProt(self.df_ref)) * num_splicing_files
+        print(total)
+        self.progress.setRange(0, total)
         self.progress.setFixedWidth(300)  # Largeur fixe
-        self.progress.setFormat("Compiling...")  # Format de la barre de progression
         self.first_update = True
         
         # Créer un sous-layout horizontal pour centrer la barre
@@ -177,5 +211,4 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         self.progress_layout.addLayout(hbox)
 
         self.layout().addWidget(self.group_progress)
-        QCoreApplication.processEvents() # force le rafraichissement pour afficher compiling
-        
+    

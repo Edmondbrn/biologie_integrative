@@ -306,7 +306,7 @@ def parallel_start_manual(df_ref: pd.DataFrame,
                           output_basename : str = "manual", 
                           n_cores : int = None,
                           progress_callback=None
-                         ) -> tuple[pd.DataFrame, pd.DataFrame]:
+                         ) -> None:
     """
     Parallélise la logique de calcul sur df_ref en le découpant en plusieurs chunks.
     Le paramètre progress_callback est une fonction de callback appelée
@@ -357,7 +357,7 @@ def parallel_start_manual(df_ref: pd.DataFrame,
     df_rna_concat.to_csv(f"{output_dir}/rna_{output_basename}.csv", sep="\t", index=False)
     df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.csv", sep="\t", index=False)
 
-    return df_dna_concat, df_rna_concat
+    return
 
 
 

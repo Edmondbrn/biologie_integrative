@@ -12,7 +12,7 @@ class DistancesWorker(QThread):
     progress_changed = pyqtSignal(int)
     finished_signal = pyqtSignal()
 
-    def __init__(self, df_ref, df_second, comparison_couples, output_dir, bdd : pb.EnsemblRelease, file_basename="distances", cpt : int = 0):
+    def __init__(self, df_ref, df_second, comparison_couples, output_dir, bdd : pb.EnsemblRelease, file_basename="distances"):
         super().__init__()
         self.df_ref = df_ref
         self.df_second = df_second
@@ -20,13 +20,11 @@ class DistancesWorker(QThread):
         self.output_dir = output_dir
         self.bdd = bdd
         self.file_basename = file_basename
-        self.cpt = cpt
 
     def run(self):
         """
         Méthode principale qui sera lancée quand on fait .start() sur le thread.
         """
-        # Placez votre logique "lourde" ici ou appelez une fonction
         self.start_manual()
 
     def start_manual(self) -> None:
@@ -55,8 +53,7 @@ class DistancesWorker(QThread):
                 # Calcul des distances ADN et ARN
                 dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
                 
-                self.progress_changed.emit(self.cpt+1)  # émettre le signal de progression
-                self.cpt += 1
+                self.progress_changed.emit(i+1)  # émettre le signal de progression
                 row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
                 rna_indices = {}
                 for y, couple in enumerate(self.comparison_couples):

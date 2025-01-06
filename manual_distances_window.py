@@ -12,7 +12,7 @@ import pandas as pd
 from distances import Distances
 from DistanceWorker import DistancesWorker, ParallelDistancesWorker
 from app_utils import load_stylesheet, show_alert
-from distances_utils import parallel_start_manual
+from distances_utils import parallel_start_manual, FilterDataProt
 
 class ManualDistancesWindow(QDialog):
     def __init__(self):
@@ -252,9 +252,9 @@ class ManualDistancesWindow(QDialog):
     def addProgressBar(self):
         # Crée la barre de progression
         self.progress = QProgressBar()
-        self.progress.setRange(0, len(self.df_ref))
+        self.progress.setRange(0, len(FilterDataProt(self.df_ref)))
         self.progress.setFixedWidth(300)  # Largeur fixe
-        self.progress.setFormat("Compiling...")  # Format de la barre de progression
+        self.progress.setFormat("%p%")
         self.first_update = True
         
         # Créer un sous-layout horizontal pour centrer la barre
@@ -267,7 +267,6 @@ class ManualDistancesWindow(QDialog):
         self.progress_layout.addLayout(hbox)
 
         self.layout().addWidget(self.group_progress)
-        QCoreApplication.processEvents() # force le rafraichissement pour afficher compiling
         
     def show_column_selection(self):
         """
@@ -323,8 +322,7 @@ class ManualDistancesWindow(QDialog):
                                    comparison_couples = comparison_list,
                                    output_dir = self.output_directory.text().split(":")[1][1:], 
                                    bdd = bdd,
-                                   file_basename = self.file_name_space.toPlainText() + "_" +splice_name, 
-                                   cpt = cpt)
+                                   file_basename = self.file_name_space.toPlainText() + "_" +splice_name)
         
         self.worker.progress_changed.connect(self.updateProgressBar)
         self.worker.finished_signal.connect(self.onCalculationFinished)
@@ -332,8 +330,6 @@ class ManualDistancesWindow(QDialog):
         self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
 
         self.worker.start()
-
-
 
     def startParallelCalculation(self, comparison_list, bdd, splice_name : str = ""):
         """
@@ -357,9 +353,6 @@ class ManualDistancesWindow(QDialog):
     def updateParallelProgressBar(self, rows_done: int):
         current_value = self.progress.value()
         self.progress.setValue(current_value + rows_done)
-        if self.progress.format() == "Compiling...":
-            # Première mise à jour, on change le format
-            self.progress.setFormat("%p%")
 
     def updateProgressBar(self, value):
         """
