@@ -113,10 +113,14 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         self.button_compare_box.addWidget(self.compare_button)
 
         # Fixer les couples de colonnes à comparer
-        for couple in self.GenerateCouple():
-            pair = f"{couple[0]} - {couple[1]}"
-            self.comparison_text.appendPlainText(pair)
-            self.compare_pairs.append(pair) # liste pour la classe mère pour qu'elle le passe au worker
+        try :
+            for couple in self.GenerateCouple():
+                pair = f"{couple[0]} - {couple[1]}"
+                self.comparison_text.appendPlainText(pair)
+                self.compare_pairs.append(pair) # liste pour la classe mère pour qu'elle le passe au worker
+        except Exception as e:
+            show_alert("Error", f"Failed to read files. Please check the column names: {e}")
+            return
         self.group_layout.addLayout(self.button_compare_box)
 
     def GenerateCouple(self):
@@ -196,7 +200,6 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         self.progress = QProgressBar()
         num_splicing_files = len(self.dict_splicing_files)
         total = len(FilterDataProt(self.df_ref)) * num_splicing_files
-        print(total)
         self.progress.setRange(0, total)
         self.progress.setFixedWidth(300)  # Largeur fixe
         self.first_update = True

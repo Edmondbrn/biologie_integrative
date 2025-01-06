@@ -109,14 +109,12 @@ def _check_second_coordinate(max_coord: int,
             if intron_pos_list[y][0] <= max_coord <= intron_pos_list[y][1]:
                 rna_dist_abs = dna_dist_abs - rna_correction
                 return sign * rna_dist_abs, True, 0
-        
         # 4c) Sinon, on ajoute la longueur de l'intron y pour aller à l'exon y+1
         if y < tot_exon - 1:
             rna_correction += get_intron_length(exon_pos_list[y][1], exon_pos_list[y+1][0])
         else:
             # Si on est déjà au dernier exon et on n'a pas trouvé "max_coord", c'est une erreur
             return 0, False, 2
-    
     return 0, False, 3
 
 @njit(cache = True, fastmath = True)
@@ -159,11 +157,6 @@ def convert_dna_to_rna( prot_coordinate: int,
                 if intron_pos_list[i][0] <= max_coord <= intron_pos_list[i][1]:
                     # => Les deux coords dans le même intron => distance = dna_distance, star=True
                     return dna_distance, True, 0
-                
-                # Ajout correction intron i :
-                # if (i+1) < tot_exon:
-                    # rna_correction += get_intron_length(min_coord, intron_pos_list[i][1])
-                
                 # Puis on check le 2e coord (max_coord) comme si on partait de exon i+1.
                 return _check_second_coordinate(max_coord, i+1, tot_exon,
                                                 dna_dist_abs, rna_correction, sign,
@@ -211,18 +204,14 @@ def process_chunk(df_chunk: pd.DataFrame,
     """
     results_dna = []
     results_rna = []
-
     # On parcourt le chunk local (au lieu de self.__data_prot complet)
     for i in range(len(df_chunk)):
         row_ref = df_chunk.iloc[i]
-        
         # Récupération du Transcript et des exons
         transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
         exon_pos_list = transcript.exon_intervals
-
         # Filtre sur df_splicing
         df_same_gene = df_splicing.loc[df_splicing["GeneID"] == row_ref["GeneID"]]
-
         for y in range(len(df_same_gene)):
             row_compare = df_same_gene.iloc[y]
             idx_couple = []
@@ -230,17 +219,14 @@ def process_chunk(df_chunk: pd.DataFrame,
                 array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
                 idx_couple.append(array_coord)
             idx_couple = np.array(idx_couple)
-            
             # Calcul des distances
             dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
-
             # Construire la ligne "ADN"
             row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
             rna_indices = {}
             for i_couple, couple in enumerate(comparison_couples):
                 row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[i_couple]
                 rna_indices[len(comparison_couples) + i_couple] = f"{couple[0]}-{couple[1]}"
-
             # Construire la ligne "ARN"
             row_rna = fill_rna_row(
                 rna_indices,
@@ -248,15 +234,11 @@ def process_chunk(df_chunk: pd.DataFrame,
                 flag_array,
                 err_message_array,
                 row_ref["ensembl_id"],
-                row_ref["seq"]
-            )
-
+                row_ref["seq"])
             results_dna.append(row_dna)
             results_rna.append(row_rna)
-
     df_dna = pd.DataFrame(results_dna)
     df_rna = pd.DataFrame(results_rna)
-
     return df_dna, df_rna
 
 
@@ -281,23 +263,19 @@ def parallel_start_manual(df_ref: pd.DataFrame,
     df_ref = FilterDataProt(df_ref)
     chunk_size = len(df_ref) // n_cores + 1
     chunks = [df_ref.iloc[i : i + chunk_size] for i in range(0, len(df_ref), chunk_size)]
-    
     # Pour accumuler les résultats finals
     results_dna = []
     results_rna = []
-
     def on_chunk_done(result):
         # Cette fonction est appelée dans le process principal 
         # dès qu'un chunk a fini de s’exécuter
         (df_dna_chunk, df_rna_chunk) = result
         results_dna.append(df_dna_chunk)
         results_rna.append(df_rna_chunk)
-        
         # On peut appeler la callback pour la progression
         if progress_callback is not None:
             progress_callback(len(df_dna_chunk)) 
             # on fait progresser de +NbLignesChunk 
-
     with Pool(n_cores) as pool:
         # Lancement asynchrone de chaque chunk
         for chunk in chunks:
@@ -309,17 +287,13 @@ def parallel_start_manual(df_ref: pd.DataFrame,
         # On bloque jusqu'à ce que tout soit fini
         pool.close()
         pool.join()
-
     # results_dna / results_rna sont maintenant alimentés par le callback
     df_dna_concat = pd.concat(results_dna, ignore_index=True)
     df_rna_concat = pd.concat(results_rna, ignore_index=True)
-
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-
     df_rna_concat.to_csv(f"{output_dir}/rna_{output_basename}.csv", sep="\t", index=False)
     df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.csv", sep="\t", index=False)
-
     return
 
 
@@ -336,18 +310,14 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
     """
     results_dna = []
     results_rna = []
-
     # On parcourt data prot complet ici
     for i in range(len(df_prot)):
         row_ref = df_prot.iloc[i]
-        
         # Récupération du Transcript et des exons
         transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
         exon_pos_list = transcript.exon_intervals
-
         # Filtre sur df_splicing
         df_same_gene = df_splicing.loc[df_splicing["GeneID"] == row_ref["GeneID"]]
-
         for y in range(len(df_same_gene)):
             row_compare = df_same_gene.iloc[y]
             idx_couple = []
@@ -355,17 +325,14 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
                 array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
                 idx_couple.append(array_coord)
             idx_couple = np.array(idx_couple)
-            
             # Calcul des distances
             dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
-
             # Construire la ligne "ADN"
             row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
             rna_indices = {}
             for i_couple, couple in enumerate(comparison_couples):
                 row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[i_couple]
                 rna_indices[len(comparison_couples) + i_couple] = f"{couple[0]}-{couple[1]}"
-
             # Construire la ligne "ARN"
             row_rna = fill_rna_row(
                 rna_indices,
@@ -373,15 +340,11 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
                 flag_array,
                 err_message_array,
                 row_ref["ensembl_id"],
-                row_ref["seq"]
-            )
-
+                row_ref["seq"])
             results_dna.append(row_dna)
             results_rna.append(row_rna)
-
     df_dna = pd.DataFrame(results_dna)
     df_rna = pd.DataFrame(results_rna)
-
     return df_dna, df_rna, splice_type
 
 
@@ -423,7 +386,6 @@ def parallel_start_manual_all(df_ref: pd.DataFrame,
         if progress_callback is not None:
             progress_callback(len(df_dna_chunk)) 
             # on fait progresser de +NbLignesChunk 
-    print(f"n_cores {n_cores}")
     with Pool(n_cores) as pool:
         # Lancement asynchrone de chaque chunk
         for splice_type, splicing_chunk in input_dfs.items():
@@ -435,7 +397,6 @@ def parallel_start_manual_all(df_ref: pd.DataFrame,
         # On bloque jusqu'à ce que tout soit fini
         pool.close()
         pool.join()
-    print("FINISHED")
     return
 
 

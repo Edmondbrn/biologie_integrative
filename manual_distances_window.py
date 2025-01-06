@@ -310,9 +310,15 @@ class ManualDistancesWindow(QDialog):
         # TODO prendre en compte l'organisme et la version de ensembl ICI
         dist = Distances()
         if self.choice.isChecked():
-            self.startParallelCalculation(comparison_list, dist.bdd)
+            try:
+                self.startParallelCalculation(comparison_list, dist.bdd)
+            except Exception as e:
+                show_alert("Error", "Failed to start parallel calculation.\n", e)
         else:
-            self.startCalculation(comparison_list, dist.bdd)
+            try :
+                self.startCalculation(comparison_list, dist.bdd)
+            except Exception as e:
+                show_alert("Error", "Failed to start calculation.\n", e)
 
         
     def startCalculation(self, comparison_list, bdd, splice_name : str = "", cpt : int = 0):
