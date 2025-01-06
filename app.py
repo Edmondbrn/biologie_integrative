@@ -10,8 +10,8 @@ from app_utils import FileDialogManual
 from GLOBAL import *
 
 from distances import *
-
-ICON_PATH = "Ressources/Icones/fugue-icons-3.5.6/icons/"
+from CSV_Viewer import CSVViewer
+from Error_window import SimpleWindow
 
 def load_stylesheet(file_path):
     with open(file_path, "r") as file:
@@ -146,11 +146,18 @@ class MainWindow(QMainWindow):
         if self.file_path:
             file_object = pd.read_csv(self.file_path, sep="\t")
             verification_column = 'gene_name'
-            if verification_column in file_object.columns:
-                self.prot_file = file_object
+            if verification_column in file_object.columns: #TODO vérification sur le type de fichier pour pas ouvrir n'importe quoi, et faire un tri également sur les colonnes du fichier génomique
+                if self.prot_file is not None:
+                    self.error_window("Un fichier protéine a déjà été chargé. \n Veuillez le supprimer avant de charger un nouveau fichier")
+                else:
+                    self.prot_file = file_object
+                    self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
             else:
-                self.genomic_file = file_object
-            self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
+                if self.genomic_file is not None:
+                    self.error_window("Un fichier génomique a déjà été chargé. \n Veuillez le supprimer avant de charger un nouveau fichier") 
+                else:
+                    self.genomic_file = file_object
+                    self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
 
     def close_file_custom(self, variable_name: str):
         setattr(self, variable_name, None)
@@ -188,7 +195,6 @@ class MainWindow(QMainWindow):
             # Créer un menu pour le QToolButton
             menu_genomic = QMenu("Fichier génomique", self)
             menu_genomic.setObjectName("Fichier génomique")
-            print(self.genomic_file.head())
             view_genomic_button = QAction("Visualiser le fichier", self)
             view_genomic_button.setStatusTip("Visualiser le fichier génomique")
             view_genomic_button.triggered.connect(lambda: self.csv_viewer(self.genomic_file))
@@ -215,31 +221,11 @@ class MainWindow(QMainWindow):
     def csv_viewer(self, file_name):
         self.viewer = CSVViewer(file_name)
         self.viewer.show()
+    
+    def error_window(self, message):
+        self.error = SimpleWindow(message)
+        self.error.show()
 
-class CSVViewer(QWidget):
-    def __init__(self, file_object):
-        super().__init__()
-        self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
-        self.setWindowTitle("CSV Viewer")
-        self.setGeometry(100, 100, 800, 600)
-
-        layout = QVBoxLayout(self)
-        self.tableWidget = QTableWidget()
-        layout.addWidget(self.tableWidget)
-
-        data = file_object.values.tolist()
-        headers = file_object.columns.tolist()
-        if headers[0] == "Unnamed: 0":
-            headers = headers[1:]
-
-        # Remplir la table avec les données du CSV
-        self.tableWidget.setRowCount(len(data))
-        self.tableWidget.setColumnCount(len(data[0])-1)
-        self.tableWidget.setHorizontalHeaderLabels(headers)
-
-        for rowIdx, row in enumerate(data):
-            for colIdx, cell in enumerate(row[1:]):
-                self.tableWidget.setItem(rowIdx, colIdx, QTableWidgetItem(str(cell))) 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
