@@ -79,7 +79,7 @@ def _check_second_coordinate(max_coord: int,
     Renvoie un tuple (distance_rna, has_star) ou une chaîne d'erreur.
     """
     # 1) Vérifier si max_coord est dans le même exon
-    if exon_pos_list[i][0] <= max_coord <= exon_pos_list[i][1]:
+    if exon_pos_list[i][0] <= max_coord-1 <= exon_pos_list[i][1]:
         # => Les 2 coordonnées sont dans le même exon
         bool_flag = manual_flag if manual_flag else False
         return sign * dna_dist_abs, bool_flag, 0
@@ -145,7 +145,7 @@ def convert_dna_to_rna( prot_coordinate: int,
     # On parcourt les exons pour voir où se situe min_coord
     for i in range(tot_exon):
         # CAS 1: min_coord est dans l'exon i
-        if exon_pos_list[i][0] <= min_coord <= exon_pos_list[i][1]:
+        if exon_pos_list[i][0] <= min_coord+1 <= exon_pos_list[i][1]:
             # Vérifie la deuxième coordonnée (max_coord)
             return _check_second_coordinate(max_coord, i, tot_exon,
                                             dna_dist_abs, rna_correction, sign,

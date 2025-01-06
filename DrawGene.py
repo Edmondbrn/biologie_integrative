@@ -28,7 +28,8 @@ class GeneImage(object):
     def __init__(self, exon_intervals, marker_pos=[], marker_heights=[], marker_colors=[],
                  marker_size=100, marker_weight=1.5, exon_color="black", intron_color="grey",
                  intron_weight=2, intron_style='-', bar_color='cornflowerblue', bar_xmin : int = None, bar_xmax : int = None,
-                 bg_color="white"):
+                 bg_color="white", show_labels=True):
+        self.canvas : plt.Axes = None
         self.exonIntervals = exon_intervals
         self.markerPositions = marker_pos
         self.markerHeights = marker_heights
@@ -49,6 +50,7 @@ class GeneImage(object):
         self.minExonLen = self.totalSpan*0.005
         self.ylims = {'exon_max': 2, 'exon_min':1}
         self.figure, self.canvas = plt.subplots(figsize=(15,1.5))
+        self.show_labels = show_labels
         self._draw()
 
     def _set_limits(self):
@@ -133,6 +135,13 @@ class GeneImage(object):
         self.canvas.set_xlim(minortick_pos[0]-(minortick_pos[1]-minortick_pos[0]),
                              minortick_pos[-1]+(minortick_pos[-1]-minortick_pos[-2]))
         
+    def _add_labels(self):
+        """
+        Method that add the distances below the blue square
+        """
+        dist = self.barColorXmax - self.barColorXmin
+        self.canvas.text(x = self.barColorXmin + dist//2, y = self.ylims['bar_min']+0.5, s = str(dist), fontsize=8, ha='center')
+        
     def _draw(self):
         self._set_limits()
         self._transform_spans()
@@ -145,6 +154,8 @@ class GeneImage(object):
                                   edgecolor=self.bgColor, facecolor=self.barColor)
         self._draw_markers()
         self._clean_axes()
+        if self.show_labels:
+            self._add_labels()
     
     def show(self):
         plt.show()
