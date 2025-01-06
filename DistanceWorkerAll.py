@@ -4,7 +4,7 @@ import pandas as pd
 import pyensembl as pb
 import numpy as np
 import os
-from distances_utils import ComputeDistanceManual, parallel_start_manual
+from distances_utils import ComputeDistanceManual, parallel_start_manual_all
 
 
 class DistancesWorkerAll(QThread):
@@ -89,14 +89,14 @@ class DistancesWorkerAll(QThread):
         self.finished_signal.emit()  # émettre le signal de fin
 
 
-class ParallelDistancesWorker(QThread):
+class ParallelDistancesWorkerAll(QThread):
     progress_changed = pyqtSignal(int)
     finished_signal = pyqtSignal()
 
     def __init__(self,
                  df_ref : pd.DataFrame,
-                 df_splicing : pd.DataFrame,
-                 comparison_couples : list[tuple[str, str]],
+                 input_dfs : dict[str : pd.DataFrame],
+                 comparison_couples : dict[str : list[tuple[str, str]]],
                  bdd : pb.EnsemblRelease,
                  output_dir : str,
                  file_basename : str,
@@ -105,7 +105,7 @@ class ParallelDistancesWorker(QThread):
         
         super().__init__(parent)
         self.df_ref = df_ref
-        self.df_splicing = df_splicing
+        self.input_dfs = input_dfs
         self.comparison_couples = comparison_couples
         self.bdd = bdd
         self.processes = n_processes
@@ -119,9 +119,9 @@ class ParallelDistancesWorker(QThread):
             self.progress_changed.emit(rows_done)
 
         # Lancer la fonction
-        parallel_start_manual(
+        parallel_start_manual_all(
             df_ref=self.df_ref,
-            df_splicing=self.df_splicing,
+            input_dfs=self.input_dfs,
             comparison_couples=self.comparison_couples,
             bdd=self.bdd,
             output_dir=self.output_dir,

@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt
 import pandas as pd
 import os
 from distances import Distances
-from DistanceWorkerAll import DistancesWorkerAll
+from DistanceWorkerAll import DistancesWorkerAll, ParallelDistancesWorkerAll
 from distances_utils import FilterDataProt
 
 class AllSplicingDistancesWindow(ManualDistancesWindow):
@@ -171,24 +171,24 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
 
         self.worker.start()
 
-    # def startParallelCalculation(self, comparison_list, bdd, splice_name : str = ""):
-    #     """
-    #     Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
-    #     """
-    #     self.worker = ParallelDistancesWorker(df_ref=self.df_ref,
-    #                                           df_splicing=self.df_second,
-    #                                           comparison_couples=comparison_list,
-    #                                           n_processes=self.thread_counter.value(),
-    #                                           bdd=bdd,
-    #                                           output_dir = self.output_directory.text().split(":")[1][1:],
-    #                                           file_basename=self.file_name_space.toPlainText() + "_" + splice_name)
+    def startParallelCalculation(self, bdd):
+        """
+        Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
+        """
+        self.worker = ParallelDistancesWorkerAll(df_ref=self.df_ref,
+                                              input_dfs=self.dict_splicing_files,
+                                              comparison_couples=self.dict_splice_couples,
+                                              n_processes=len(self.dict_splicing_files),
+                                              bdd=bdd,
+                                              output_dir = self.output_directory.text().split(":")[1][1:],
+                                              file_basename=self.file_name_space.toPlainText())
 
-    #     self.worker.progress_changed.connect(self.updateParallelProgressBar)
-    #     self.worker.finished_signal.connect(self.onCalculationFinished)
+        self.worker.progress_changed.connect(self.updateParallelProgressBar)
+        self.worker.finished_signal.connect(self.onCalculationFinished)
 
-    #     self.addProgressBar()
+        self.addProgressBar()
 
-    #     self.worker.start()
+        self.worker.start()
 
 
     def addProgressBar(self):
