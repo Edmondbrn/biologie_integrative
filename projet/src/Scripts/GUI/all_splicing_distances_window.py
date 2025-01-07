@@ -1,13 +1,13 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
-    QLabel, QPlainTextEdit, QComboBox, QFileDialog, QProgressBar,
+    QLabel, QPlainTextEdit, QComboBox, QFileDialog, QProgressBar, QCheckBox
 )
 import pandas as pd
 import os
 
 from .manual_distances_window import ManualDistancesWindow
-from .app_utils import show_alert
+from .app_utils import show_alert, load_stylesheet
 
 from ..Back.distances import Distances
 from ..Back.DistanceWorkerAll import DistancesWorkerAll, ParallelDistancesWorkerAll
@@ -146,7 +146,23 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
                         self.dict_splice_couples[splice].append((col_name_ref, col_name))
         return self.couple
     
- 
+    def addThreadsSelection(self):
+        """
+        Method to add the number of processing to use durinf the calculation.
+        """
+        box_multi = QHBoxLayout()
+        self.choose_parallelisation = QLabel("Activate multithreading ? (not recommended on Windows)")
+        self.choice = QCheckBox()
+        self.choice.setStyleSheet(load_stylesheet(QSS_PATH))
+
+
+        # fill the different boxes and add them to the layout
+        box_multi.addWidget(self.choose_parallelisation)
+        box_multi.addWidget(self.choice)
+
+        self.group_layout.addLayout(box_multi)
+    
+
     
     def compare_columns(self):
         """

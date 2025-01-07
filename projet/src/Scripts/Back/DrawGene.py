@@ -62,7 +62,7 @@ class GeneImage(object):
         if not isinstance(self.exonIntervals, list):
             raise ValueError("Exon intervals must be a list")
         for intervals in self.exonIntervals:
-            if not isinstance(intervals, list) or len(intervals) != 2:
+            if not isinstance(intervals, tuple) or len(intervals) != 2:
                 raise ValueError("Exon intervals must be a list of lists with 2 values")
             if not isinstance(intervals[0], int) or not isinstance(intervals[1], int):
                 raise ValueError("Exon intervals values must be integers")
@@ -173,7 +173,7 @@ class GeneImage(object):
     
     def show(self):
         plt.show()
-        plt.close()
+        # plt.close()
     
     def save(self, path):
         plt.savefig(path, bbox_inches='tight', pad_inches=0.1)
