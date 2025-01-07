@@ -298,15 +298,19 @@ class CSVViewer(QWidget):
         # TODO à changer pour les versions des génoms et les espèces
         specy = "mus_musculus"
         release = "102"
-        bdd = pb.EnsemblRelease(species = specy, release = release)
-        transcript : pb.Transcript = bdd.transcript_by_id(transcript_id)
-        exon_pos = transcript.exon_intervals
-        marker_pos = [min(texts[0], texts[1]), max(texts[0], texts[1])]
-        gene = GeneImage(exon_pos, 
-                         marker_pos, 
-                         show_labels=show_distance_labels,
-                         marker_colors=['red', 'blue'], 
-                         bar_xmax=marker_pos[1], 
-                         bar_xmin=marker_pos[0])
-        gene.show()
+        try:
+            bdd = pb.EnsemblRelease(species = specy, release = release)
+            transcript : pb.Transcript = bdd.transcript_by_id(transcript_id)
+            exon_pos = transcript.exon_intervals
+            marker_pos = [min(texts[0], texts[1]), max(texts[0], texts[1])]
+            gene = GeneImage(exon_pos, 
+                            marker_pos, 
+                            show_labels=show_distance_labels,
+                            bar_xmax=marker_pos[1], 
+                            bar_xmin=marker_pos[0])
+            gene.show()
+        except Exception as e:
+            show_alert("Error", f"An error occured: {e}")
+            return
+        
         

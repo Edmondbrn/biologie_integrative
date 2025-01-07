@@ -9,6 +9,7 @@ from .app_utils import load_stylesheet, show_alert
 
 import os
 import pandas as pd
+import numpy as np
 
 from ..Back.distances import Distances
 from ..Back.distances_utils import FilterDataProt
@@ -223,11 +224,12 @@ class ManualDistancesWindow(QDialog):
         self.group_layout.addWidget(self.column_selection_label)
 
         self.column_combo_ref = QComboBox()
-        self.column_combo_ref.addItems(self.df_ref.columns)
+        # ajout les colonnes numériques du dataframe de référence
+        self.column_combo_ref.addItems(lambda: self.df_ref.select_dtypes(include=[np.number]).columns)
         self.group_layout.addWidget(self.column_combo_ref)
 
         self.column_combo_second = QComboBox()
-        self.column_combo_second.addItems(self.df_second.columns)
+        self.column_combo_second.addItems(self.df_second.select_dtypes(include=[np.number]).columns)
         self.group_layout.addWidget(self.column_combo_second)
 
         # Zone de texte pour afficher les paires
@@ -325,38 +327,46 @@ class ManualDistancesWindow(QDialog):
         
     def startCalculation(self, comparison_list, bdd, splice_name : str = "", cpt : int = 0):
         # Création du thread
-        self.worker = DistancesWorker(df_ref = self.df_ref, 
-                                   df_second = self.df_second, 
-                                   comparison_couples = comparison_list,
-                                   output_dir = self.output_directory.text().split(":")[1][1:], 
-                                   bdd = bdd,
-                                   file_basename = self.file_name_space.toPlainText() + "_" +splice_name)
-        
-        self.worker.progress_changed.connect(self.updateProgressBar)
-        self.worker.finished_signal.connect(self.onCalculationFinished)
+        try:
+            self.worker = DistancesWorker(df_ref = self.df_ref, 
+                                    df_second = self.df_second, 
+                                    comparison_couples = comparison_list,
+                                    output_dir = self.output_directory.text().split(":")[1][1:], 
+                                    bdd = bdd,
+                                    file_basename = self.file_name_space.toPlainText() + "_" +splice_name)
+            
+            self.worker.progress_changed.connect(self.updateProgressBar)
+            self.worker.finished_signal.connect(self.onCalculationFinished)
 
-        self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
+            self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
 
-        self.worker.start()
+            self.worker.start()
+        except Exception as e:
+            show_alert("Error", "Failed to start calculation.\n", e)
+            return
 
     def startParallelCalculation(self, comparison_list, bdd, splice_name : str = ""):
         """
         Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
         """
-        self.worker = ParallelDistancesWorker(df_ref=self.df_ref,
-                                              df_splicing=self.df_second,
-                                              comparison_couples=comparison_list,
-                                              n_processes=self.thread_counter.value(),
-                                              bdd=bdd,
-                                              output_dir = self.output_directory.text().split(":")[1][1:],
-                                              file_basename=self.file_name_space.toPlainText() + "_" + splice_name)
+        try:
+            self.worker = ParallelDistancesWorker(df_ref=self.df_ref,
+                                                df_splicing=self.df_second,
+                                                comparison_couples=comparison_list,
+                                                n_processes=self.thread_counter.value(),
+                                                bdd=bdd,
+                                                output_dir = self.output_directory.text().split(":")[1][1:],
+                                                file_basename=self.file_name_space.toPlainText() + "_" + splice_name)
 
-        self.worker.progress_changed.connect(self.updateParallelProgressBar)
-        self.worker.finished_signal.connect(self.onCalculationFinished)
+            self.worker.progress_changed.connect(self.updateParallelProgressBar)
+            self.worker.finished_signal.connect(self.onCalculationFinished)
 
-        self.addProgressBar()
+            self.addProgressBar()
 
-        self.worker.start()
+            self.worker.start()
+        except Exception as e:
+            show_alert("Error", "Failed to start parallel calculation.\n", e)
+            return
 
     def updateParallelProgressBar(self, rows_done: int):
         current_value = self.progress.value()

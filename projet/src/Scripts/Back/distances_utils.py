@@ -13,13 +13,15 @@ ERROR_DICT = {4 : "Error while converting dna to rna",
 
 def FilterDataProt(df_prot : pd.DataFrame) -> pd.DataFrame:
     # enleve les lignes avec des str sur la colonne start_ensembl
+    if not isinstance(df_prot, pd.DataFrame):
+        raise TypeError("The input must be a DataFrame")
     df_prot = df_prot.loc[df_prot["start_ensembl"].apply(lambda x: x.isnumeric())]
     return df_prot
 
 def fill_rna_row(rna_indices : dict, dist_array : int, flag : bool, err_message :int , 
                     transcript_id : int, protein_sequence : str):
     """
-    Méthode pour remplir le slignes des différents tableaux pour les distances ARN
+    Méthode pour remplir les lignes des différents tableaux pour les distances ARN
     """
     row_rna = {}
     err_message = err_message[len(err_message)//2:]  # on ne garde que la 2e moitié qui correspond aux distances ARN
@@ -44,6 +46,14 @@ def get_intron_coord(exon_pos_list):
     d'exons [(ex1_start, ex1_end), (ex2_start, ex2_end), ...].
     Ex: si exon1 = [100, 120], exon2 = [140, 160], intron = [121, 139].
     """
+    if not isinstance(exon_pos_list, list):
+        raise TypeError("The input must be a list")
+    for exon in exon_pos_list:
+        if not isinstance(exon, tuple) or len(exon) != 2:
+            raise ValueError("Each element of the list must be a tuple of 2 elements")
+        if not isinstance(exon[0], int) or not isinstance(exon[1], int):
+            raise ValueError("Each element of the list must be a tuple of 2 integers")
+    
     introns = []
     for i in range(len(exon_pos_list)-1):
         introns.append((exon_pos_list[i][1] + 1, exon_pos_list[i+1][0] - 1))
@@ -51,6 +61,8 @@ def get_intron_coord(exon_pos_list):
 
 @njit(cache = True, fastmath = True)
 def get_intron_length(intron_start: int, intron_end: int) -> int:
+    if not isinstance(intron_start, int) or not isinstance(intron_end, int):
+        raise TypeError("The input must be integers")
     return max(0, intron_end - intron_start)  # évite négatif si chevauchement inattendu
 
 @njit(cache = True, fastmath = True)
@@ -79,14 +91,14 @@ def _check_second_coordinate(max_coord: int,
     Renvoie un tuple (distance_rna, has_star) ou une chaîne d'erreur.
     """
     # 1) Vérifier si max_coord est dans le même exon
-    if exon_pos_list[i][0] <= max_coord-1 <= exon_pos_list[i][1]:
+    if exon_pos_list[i][0]-1 <= max_coord <= exon_pos_list[i][1]+1:
         # => Les 2 coordonnées sont dans le même exon
         bool_flag = manual_flag if manual_flag else False
         return sign * dna_dist_abs, bool_flag, 0
 
     # 2) Vérifier si c'est dans l'intron juste après l'exon i (si i existe)
     if i < len(intron_pos_list):
-        if intron_pos_list[i][0] <= max_coord <= intron_pos_list[i][1]:
+        if intron_pos_list[i][0]-1 <= max_coord <= intron_pos_list[i][1]+1:
             # => La deuxième coordonnée est dans l'intron suivant
             return sign * dna_dist_abs, True , 0 # Signaler par un flag
     
@@ -99,14 +111,14 @@ def _check_second_coordinate(max_coord: int,
     # 4) Boucle sur les exons suivants
     for y in range(i+1, tot_exon):
         # 4a) max_coord tombe dans l'exon y
-        if exon_pos_list[y][0] <= max_coord <= exon_pos_list[y][1]:
+        if exon_pos_list[y][0]-1 <= max_coord <= exon_pos_list[y][1]+1:
             rna_dist_abs = dna_dist_abs - rna_correction
             bool_flag = manual_flag if manual_flag else False
             return sign * rna_dist_abs, bool_flag, 0
         
         # 4b) max_coord tombe dans l'intron suivant l'exon y
         if y < len(intron_pos_list):
-            if intron_pos_list[y][0] <= max_coord <= intron_pos_list[y][1]:
+            if intron_pos_list[y][0]-1 <= max_coord <= intron_pos_list[y][1]+1:
                 rna_dist_abs = dna_dist_abs - rna_correction
                 return sign * rna_dist_abs, True, 0
         # 4c) Sinon, on ajoute la longueur de l'intron y pour aller à l'exon y+1
@@ -129,14 +141,22 @@ def convert_dna_to_rna( prot_coordinate: int,
     
     has_star = True si on détecte un site dans un intron.
     """
+    if not isinstance(prot_coordinate, int) or not isinstance(splice_coordinate, int) or not isinstance(dna_distance, int):
+        raise TypeError("The input must be integers", prot_coordinate, splice_coordinate, dna_distance)
+    if not isinstance(exon_pos_list, list):
+        raise TypeError("The input must be a list")
+    for exon in exon_pos_list:
+        if not isinstance(exon, tuple) or len(exon) != 2:
+            raise ValueError("Each element of the list must be a tuple of 2 elements")
+        if not isinstance(exon[0], int) or not isinstance(exon[1], int):
+            raise ValueError("Each element of the list must be a tuple of 2 integers")
     tot_exon = len(exon_pos_list)
     exon_pos_list = sorted(exon_pos_list)
     intron_pos_list = get_intron_coord(exon_pos_list)
     sign = 1 if dna_distance >= 0 else -1
     dna_dist_abs = abs(dna_distance)
-    min_coord = min(prot_coordinate, splice_coordinate+1)
-    max_coord = max(prot_coordinate, splice_coordinate+1)
-    # Vérif : le splice_coordinate est-il dans la plage du transcript (ou exon/intron) ?
+    min_coord = min(prot_coordinate, splice_coordinate)
+    max_coord = max(prot_coordinate, splice_coordinate)
     # Ici, la condition "splice_coordinate < exon_pos_list[0][0]-1" ou ">" ... est la vôtre
     if splice_coordinate < (exon_pos_list[0][0] - 1) or splice_coordinate > (exon_pos_list[-1][1] + 1):
         return 0, False, 1
@@ -145,7 +165,7 @@ def convert_dna_to_rna( prot_coordinate: int,
     # On parcourt les exons pour voir où se situe min_coord
     for i in range(tot_exon):
         # CAS 1: min_coord est dans l'exon i
-        if exon_pos_list[i][0] <= min_coord+1 <= exon_pos_list[i][1]:
+        if exon_pos_list[i][0]-1 <= min_coord <= exon_pos_list[i][1]+1:
             # Vérifie la deuxième coordonnée (max_coord)
             return _check_second_coordinate(max_coord, i, tot_exon,
                                             dna_dist_abs, rna_correction, sign,
@@ -185,12 +205,12 @@ def ComputeDistanceManual(coord : np.ndarray[np.ndarray[int]],
     return dist, flag, err_message
 
 
-def warmup_numba() -> None:
+def warmup_numba() -> 0:
     # Jeu de données factice pour compiler Numba avant la parallélisation.
     coord = np.array([[100, 90]], dtype=np.int64)  # un seul couple
     exon_pos_list = [(50, 70)]
     _, _, _ = ComputeDistanceManual(coord, exon_pos_list)
-    return
+    return 0
 
 
 def process_chunk(df_chunk: pd.DataFrame,

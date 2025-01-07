@@ -162,38 +162,46 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
 
     def startCalculation(self,bdd):
         # Création du thread
-        self.worker = DistancesWorkerAll(df_ref = self.df_ref, 
+        try:
+            self.worker = DistancesWorkerAll(df_ref = self.df_ref, 
                                          input_df = self.dict_splicing_files, 
                                          comparison_couples = self.dict_splice_couples,
                                          output_dir = self.output_directory.text().split(":")[1][1:], 
                                          bdd = bdd,
                                          file_basename = self.file_name_space.toPlainText())
         
-        self.worker.progress_changed.connect(self.updateProgressBar)
-        self.worker.finished_signal.connect(self.onCalculationFinished)
+            self.worker.progress_changed.connect(self.updateProgressBar)
+            self.worker.finished_signal.connect(self.onCalculationFinished)
 
-        self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
+            self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
 
-        self.worker.start()
+            self.worker.start()
+        except Exception as e:
+            show_alert("Error", f"Failed to start calculation: {e}")
+            return
 
     def startParallelCalculation(self, bdd):
         """
         Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
         """
-        self.worker = ParallelDistancesWorkerAll(df_ref=self.df_ref,
-                                              input_dfs=self.dict_splicing_files,
-                                              comparison_couples=self.dict_splice_couples,
-                                              n_processes=len(self.dict_splicing_files),
-                                              bdd=bdd,
-                                              output_dir = self.output_directory.text().split(":")[1][1:],
-                                              file_basename=self.file_name_space.toPlainText())
+        try :
+            self.worker = ParallelDistancesWorkerAll(df_ref=self.df_ref,
+                                                input_dfs=self.dict_splicing_files,
+                                                comparison_couples=self.dict_splice_couples,
+                                                n_processes=len(self.dict_splicing_files),
+                                                bdd=bdd,
+                                                output_dir = self.output_directory.text().split(":")[1][1:],
+                                                file_basename=self.file_name_space.toPlainText())
 
-        self.worker.progress_changed.connect(self.updateParallelProgressBar)
-        self.worker.finished_signal.connect(self.onCalculationFinished)
+            self.worker.progress_changed.connect(self.updateParallelProgressBar)
+            self.worker.finished_signal.connect(self.onCalculationFinished)
 
-        self.addProgressBar()
+            self.addProgressBar()
 
-        self.worker.start()
+            self.worker.start()
+        except Exception as e:
+            show_alert("Error", f"Failed to start parallel calculation: {e}")
+            return
 
 
     def addProgressBar(self):
