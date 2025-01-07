@@ -25,7 +25,7 @@ __email__ = "parashar.dhapola@gmail.com"
 
 
 class GeneImage(object):
-    def __init__(self, exon_intervals, marker_pos=[], marker_heights=[], marker_colors=[],
+    def __init__(self, exon_intervals, marker_pos=[], marker_heights=[], marker_colors=['red', 'blue'],
                  marker_size=100, marker_weight=1.5, exon_color="black", intron_color="grey",
                  intron_weight=2, intron_style='-', bar_color='cornflowerblue', bar_xmin : int = None, bar_xmax : int = None,
                  bg_color="white", show_labels=True):
@@ -43,6 +43,7 @@ class GeneImage(object):
         self.barColor= bar_color
         self.barColorXmin = self.exonIntervals[0][0] if bar_xmin is None else bar_xmin
         self.barColorXmax = self.exonIntervals[-1][1] if bar_xmax is None else bar_xmax
+        self._check_input()
         self.bgColor = bg_color
         self.markerDefaultColor = 'grey'
         self.numExons = len(self.exonIntervals)
@@ -52,6 +53,19 @@ class GeneImage(object):
         self.figure, self.canvas = plt.subplots(figsize=(15,1.5))
         self.show_labels = show_labels
         self._draw()
+
+    def _check_input(self):
+        if not isinstance(self.barColorXmin, int) or not isinstance(self.barColorXmax, int):
+            raise ValueError("Border values must be integers")
+        if not isinstance(self.markerPositions, list) or not isinstance(self.markerColors, list):
+            raise ValueError("Markers positions and colors must be lists")
+        if not isinstance(self.exonIntervals, list):
+            raise ValueError("Exon intervals must be a list")
+        for intervals in self.exonIntervals:
+            if not isinstance(intervals, list) or len(intervals) != 2:
+                raise ValueError("Exon intervals must be a list of lists with 2 values")
+            if not isinstance(intervals[0], int) or not isinstance(intervals[1], int):
+                raise ValueError("Exon intervals values must be integers")
 
     def _set_limits(self):
         self.ylims['intron_max'] = self.ylims['exon_max']*0.9
@@ -159,10 +173,18 @@ class GeneImage(object):
     
     def show(self):
         plt.show()
+        plt.close()
+    
+    def save(self, path):
+        plt.savefig(path, bbox_inches='tight', pad_inches=0.1)
+        plt.close()
         
 if  __name__ == "__main__":
     #exons positions
-    exon_pos = [97543299,97544702], [97547885,97548026], [97564044,97564188], [97658624,97658804], [97700407,97700550], [97770814,97770934], [97771732,97771853], [97839116,97839200], [97847948,97848017], [97915614,97915779], [97981281,97981497], [98015115,98015300], [98039315,98039526], [98058773,98058943], [98060614,98060722], [98144650,98144738], [98157272,98157354], [98164906,98165103], [98187065,98187227], [98205947,98206035], [98293669,98293752], [98348819,98348930], [98386439,98386615]
+    exon_pos = [
+        [97543299, 97544702], [97547885, 97548026], [97564044, 97564188],
+        [97658624, 97658804], [97700407, 97700550], [97770814, 97770934]
+    ]
     #marker positions
     marker_pos = [97647885, 98247485]
     gene = GeneImage(exon_pos, marker_pos, marker_colors=['red', 'blue'], bar_xmin=97647885, bar_xmax=98247485 )
