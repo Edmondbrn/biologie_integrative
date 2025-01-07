@@ -117,7 +117,7 @@ class ParallelDistancesWorkerAll(QThread):
             # Emettre le signal PyQt
             self.progress_changed.emit(rows_done)
 
-        # Lancer la fonction
+        # Lance la fonction
         parallel_start_manual_all(
             df_ref=self.df_ref,
             input_dfs=self.input_dfs,
@@ -129,5 +129,5 @@ class ParallelDistancesWorkerAll(QThread):
             progress_callback=progress_callback
         )
 
-        # Une fois fini :
+        # Une fois fini
         self.finished_signal.emit()

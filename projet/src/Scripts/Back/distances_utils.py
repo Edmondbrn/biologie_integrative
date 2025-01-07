@@ -15,7 +15,7 @@ def FilterDataProt(df_prot : pd.DataFrame) -> pd.DataFrame:
     # enleve les lignes avec des str sur la colonne start_ensembl
     if not isinstance(df_prot, pd.DataFrame):
         raise TypeError("The input must be a DataFrame")
-    df_prot = df_prot.loc[df_prot["start_ensembl"].apply(lambda x: x.isnumeric())]
+    df_prot = df_prot.loc[df_prot["start_genomic"].apply(lambda x: str(x).isnumeric())]
     return df_prot
 
 def fill_rna_row(rna_indices : dict, dist_array : int, flag : bool, err_message :int , 
