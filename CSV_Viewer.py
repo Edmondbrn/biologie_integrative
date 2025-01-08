@@ -16,12 +16,10 @@ class CSVViewer(QWidget):
 
         data = file_object.values.tolist()
         headers = file_object.columns.tolist()
-        if headers[0] == "Unnamed: 0":
-            headers = headers[1:]
 
         # Remplir la table avec les données du CSV
         self.tableWidget.setRowCount(len(data))
-        self.tableWidget.setColumnCount(len(data[0])-1)
+        self.tableWidget.setColumnCount(len(data[0]))
         self.tableWidget.setHorizontalHeaderLabels(headers)
 
         for rowIdx, row in enumerate(data):

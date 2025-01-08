@@ -59,6 +59,7 @@ class MainWindow(QMainWindow):
         # On créé une barre d'outils
         toolbar = QToolBar("My main toolbar")
         toolbar.setObjectName("My main toolbar")
+        toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.addToolBar(toolbar)
 
         # ============================ définition des boutons ===============================
@@ -144,7 +145,7 @@ class MainWindow(QMainWindow):
 
     def file_loader(self):
         if self.file_path:
-            file_object = pd.read_csv(self.file_path, sep="\t")
+            file_object = pd.read_csv(self.file_path, sep="\t", index_col=0)
             verification_column = 'gene_name'
             if verification_column in file_object.columns: #TODO vérification sur le type de fichier pour pas ouvrir n'importe quoi, et faire un tri également sur les colonnes du fichier génomique
                 if self.prot_file is not None:
