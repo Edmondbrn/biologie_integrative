@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 import pyensembl as pb
 
 os.chdir(os.path.dirname(__file__))
