@@ -333,7 +333,7 @@ class ManualDistancesWindow(QDialog):
             self.worker = DistancesWorker(df_ref = self.df_ref, 
                                     df_second = self.df_second, 
                                     comparison_couples = comparison_list,
-                                    output_dir = self.output_directory.text().split(":")[1][1:], 
+                                    output_dir = self.output_directory.text().split(":", maxsplit=1)[1].strip(), 
                                     release = RELEASE,
                                     species = SPECY,
                                     file_basename = self.file_name_space.toPlainText() + "_" +splice_name)
