@@ -225,11 +225,11 @@ class ManualDistancesWindow(QDialog):
 
         self.column_combo_ref = QComboBox()
         # ajout les colonnes numériques du dataframe de référence
-        self.column_combo_ref.addItems(lambda: self.df_ref.select_dtypes(include=[np.number]).columns)
+        self.column_combo_ref.addItems(self.df_ref.columns)
         self.group_layout.addWidget(self.column_combo_ref)
 
         self.column_combo_second = QComboBox()
-        self.column_combo_second.addItems(self.df_second.select_dtypes(include=[np.number]).columns)
+        self.column_combo_second.addItems(self.df_second.columns)
         self.group_layout.addWidget(self.column_combo_second)
 
         # Zone de texte pour afficher les paires
@@ -312,27 +312,30 @@ class ManualDistancesWindow(QDialog):
             couple = tuple(pair.split(" - "))
             comparison_list.append(couple)
         # TODO prendre en compte l'organisme et la version de ensembl ICI
-        dist = Distances()
+
+                 
         if self.choice.isChecked():
             try:
-                self.startParallelCalculation(comparison_list, dist.bdd)
+                self.startParallelCalculation(comparison_list)
             except Exception as e:
                 show_alert("Error", "Failed to start parallel calculation.\n", e)
         else:
             try :
-                self.startCalculation(comparison_list, dist.bdd)
+                self.startCalculation(comparison_list)
             except Exception as e:
                 show_alert("Error", "Failed to start calculation.\n", e)
 
         
-    def startCalculation(self, comparison_list, bdd, splice_name : str = "", cpt : int = 0):
+    def startCalculation(self, comparison_list, splice_name : str = ""):
         # Création du thread
         try:
+            # TODO quand on doit télécharger / charger un génome, on doit chnager le svaleurs dans GLOBAL.py
             self.worker = DistancesWorker(df_ref = self.df_ref, 
                                     df_second = self.df_second, 
                                     comparison_couples = comparison_list,
                                     output_dir = self.output_directory.text().split(":")[1][1:], 
-                                    bdd = bdd,
+                                    release = RELEASE,
+                                    species = SPECY,
                                     file_basename = self.file_name_space.toPlainText() + "_" +splice_name)
             
             self.worker.progress_changed.connect(self.updateProgressBar)
@@ -345,16 +348,18 @@ class ManualDistancesWindow(QDialog):
             show_alert("Error", "Failed to start calculation.\n", e)
             return
 
-    def startParallelCalculation(self, comparison_list, bdd, splice_name : str = ""):
+    def startParallelCalculation(self, comparison_list, splice_name : str = ""):
         """
         Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
         """
         try:
+            # TODO quand on doit télécharger / charger un génome, on doit chnager le svaleurs dans GLOBAL.py
             self.worker = ParallelDistancesWorker(df_ref=self.df_ref,
                                                 df_splicing=self.df_second,
                                                 comparison_couples=comparison_list,
                                                 n_processes=self.thread_counter.value(),
-                                                bdd=bdd,
+                                                release=RELEASE,
+                                                species=SPECY,
                                                 output_dir = self.output_directory.text().split(":")[1][1:],
                                                 file_basename=self.file_name_space.toPlainText() + "_" + splice_name)
 

@@ -11,19 +11,36 @@ class DistancesWorker(QThread):
     progress_changed = pyqtSignal(int)
     finished_signal = pyqtSignal()
 
-    def __init__(self, df_ref, df_second, comparison_couples, output_dir, bdd : pb.EnsemblRelease, file_basename="distances"):
+    def __init__(self,
+                df_ref,
+                df_second,
+                comparison_couples,
+                output_dir,
+                release: int,
+                species: str,
+                file_basename="distances"):
         super().__init__()
         self.df_ref = df_ref
         self.df_second = df_second
         self.comparison_couples = comparison_couples
         self.output_dir = output_dir
-        self.bdd = bdd
+        # On NE crée PAS l'objet bdd ici, on stocke seulement les infos
+        self.release = release
+        self.species = species
         self.file_basename = file_basename
 
     def run(self):
         """
-        Méthode principale qui sera lancée quand on fait .start() sur le thread.
+        Méthode principale lancée quand on fait .start() sur le QThread.
+        -> C'est ici, dans le "vrai" thread worker,
+           qu'on doit instancier l'objet EnsemblRelease.
         """
+        # Création (et téléchargement/ index) dans le thread *courant*
+        self.bdd = pb.EnsemblRelease(release=self.release, species=self.species)
+        self.bdd.download()
+        self.bdd.index()
+
+        # Maintenant, l'accès à self.bdd se fait dans le même thread => OK
         self.start_manual()
 
     def start_manual(self) -> None:
@@ -87,7 +104,8 @@ class ParallelDistancesWorker(QThread):
                  df_ref : pd.DataFrame,
                  df_splicing : pd.DataFrame,
                  comparison_couples : list[tuple[str, str]],
-                 bdd : pb.EnsemblRelease,
+                 release : int,
+                 species : str,
                  output_dir : str,
                  file_basename : str,
                  n_processes : int = 4,
@@ -97,12 +115,16 @@ class ParallelDistancesWorker(QThread):
         self.df_ref = df_ref
         self.df_splicing = df_splicing
         self.comparison_couples = comparison_couples
-        self.bdd = bdd
         self.processes = n_processes
+        self.release = release
+        self.species = species
         self.output_dir = output_dir
         self.file_basename = file_basename
 
     def run(self):
+        self.bdd = pb.EnsemblRelease(release = self.release, species = self.species)
+        self.bdd.download()
+        self.bdd.index()
         # Définir la fonction callback que l’on passera à parallel_start_manual
         def progress_callback(rows_done: int):
             # Emettre le signal PyQt

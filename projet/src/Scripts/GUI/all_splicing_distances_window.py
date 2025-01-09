@@ -170,20 +170,20 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         """
         # Get all the pairs in a correct format for the Distances class
         # TODO prendre en compte l'organisme et la version de ensembl ICI
-        dist = Distances()
         if self.choice.isChecked():
-            self.startParallelCalculation(dist.bdd)
+            self.startParallelCalculation()
         else:
-            self.startCalculation(dist.bdd)
+            self.startCalculation()
 
-    def startCalculation(self,bdd):
+    def startCalculation(self):
         # Création du thread
         try:
             self.worker = DistancesWorkerAll(df_ref = self.df_ref, 
                                          input_df = self.dict_splicing_files, 
                                          comparison_couples = self.dict_splice_couples,
                                          output_dir = self.output_directory.text().split(":")[1][1:], 
-                                         bdd = bdd,
+                                         release = RELEASE,
+                                         species = SPECY,
                                          file_basename = self.file_name_space.toPlainText())
         
             self.worker.progress_changed.connect(self.updateProgressBar)
@@ -196,7 +196,7 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
             show_alert("Error", f"Failed to start calculation: {e}")
             return
 
-    def startParallelCalculation(self, bdd):
+    def startParallelCalculation(self):
         """
         Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
         """
@@ -205,7 +205,8 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
                                                 input_dfs=self.dict_splicing_files,
                                                 comparison_couples=self.dict_splice_couples,
                                                 n_processes=len(self.dict_splicing_files),
-                                                bdd=bdd,
+                                                release=RELEASE,
+                                                species=SPECY,
                                                 output_dir = self.output_directory.text().split(":")[1][1:],
                                                 file_basename=self.file_name_space.toPlainText())
 

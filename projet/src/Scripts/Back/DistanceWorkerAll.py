@@ -15,7 +15,8 @@ class DistancesWorkerAll(QThread):
                  input_df : dict[str : pd.DataFrame], 
                  comparison_couples : dict[str : [tuple[str, str]]], 
                  output_dir : str, 
-                 bdd : pb.EnsemblRelease, 
+                 release : int,
+                 species : str, 
                  file_basename="distances"):
         
         super().__init__()
@@ -23,13 +24,17 @@ class DistancesWorkerAll(QThread):
         self.input_df = input_df
         self.dict_comparison_couples = comparison_couples
         self.output_dir = output_dir
-        self.bdd = bdd
+        self.release = release
+        self.species = species
         self.file_basename = file_basename
 
     def run(self):
         """
         Méthode principale qui sera lancée quand on fait .start() sur le thread.
         """
+        self.bdd = pb.EnsemblRelease(release = self.release, species = self.species)
+        self.bdd.download()
+        self.bdd.index()
         self.start_manual_all()
 
     def start_manual_all(self) -> None:
@@ -96,7 +101,8 @@ class ParallelDistancesWorkerAll(QThread):
                  df_ref : pd.DataFrame,
                  input_dfs : dict[str : pd.DataFrame],
                  comparison_couples : dict[str : list[tuple[str, str]]],
-                 bdd : pb.EnsemblRelease,
+                 release : int,
+                 species : str,
                  output_dir : str,
                  file_basename : str,
                  n_processes : int = 4,
@@ -106,12 +112,16 @@ class ParallelDistancesWorkerAll(QThread):
         self.df_ref = df_ref
         self.input_dfs = input_dfs
         self.comparison_couples = comparison_couples
-        self.bdd = bdd
         self.processes = n_processes
         self.output_dir = output_dir
+        self.release = release
+        self.species = species
         self.file_basename = file_basename
 
     def run(self):
+        self.bdd = pb.EnsemblRelease(release = self.release, species = self.species)
+        self.bdd.download()
+        self.bdd.index()
         # Définir la fonction callback que l’on passera à parallel_start_manual
         def progress_callback(rows_done: int):
             # Emettre le signal PyQt
