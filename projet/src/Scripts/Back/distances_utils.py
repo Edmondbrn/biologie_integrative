@@ -141,10 +141,6 @@ def convert_dna_to_rna( prot_coordinate: int,
     
     has_star = True si on détecte un site dans un intron.
     """
-    if not isinstance(prot_coordinate, int) or not isinstance(splice_coordinate, int) or not isinstance(dna_distance, int):
-        raise TypeError("The input must be integers", prot_coordinate, splice_coordinate, dna_distance)
-    if not isinstance(exon_pos_list, list):
-        raise TypeError("The input must be a list")
     for exon in exon_pos_list:
         if not isinstance(exon, tuple) or len(exon) != 2:
             raise ValueError("Each element of the list must be a tuple of 2 elements")
@@ -184,6 +180,15 @@ def convert_dna_to_rna( prot_coordinate: int,
     # Si on sort de la boucle sans avoir rien retourné => problème
     return 0, False, 4
 
+def ComputeDistanceManuel_wrapper(coord : np.ndarray[np.ndarray[int]], 
+                                    exon_pos_list : list[tuple[int, int]]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    # Vérifications de type en dehors de la fonction Numba
+    if not isinstance(coord, np.ndarray):
+        raise TypeError("coord must be a numpy array")
+    if not all(isinstance(item, tuple) and len(item) == 2 for item in exon_pos_list):
+        raise TypeError("exon_pos_list must be a list of tuples with two integers each")
+    
+    return ComputeDistanceManual(coord, exon_pos_list)
 
 @njit(cache = True, fastmath = True)
 def ComputeDistanceManual(coord : np.ndarray[np.ndarray[int]], 
@@ -240,7 +245,7 @@ def process_chunk(df_chunk: pd.DataFrame,
                 idx_couple.append(array_coord)
             idx_couple = np.array(idx_couple)
             # Calcul des distances
-            dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
+            dist_array, flag_array, err_message_array = ComputeDistanceManuel_wrapper(idx_couple, exon_pos_list)
             # Construire la ligne "ADN"
             row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
             rna_indices = {}

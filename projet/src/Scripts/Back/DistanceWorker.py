@@ -3,7 +3,7 @@ import pandas as pd
 import pyensembl as pb
 import numpy as np
 import os
-from .distances_utils import ComputeDistanceManual, parallel_start_manual, FilterDataProt, fill_rna_row
+from .distances_utils import ComputeDistanceManuel_wrapper, parallel_start_manual, FilterDataProt, fill_rna_row
 
 
 class DistancesWorker(QThread):
@@ -67,7 +67,7 @@ class DistancesWorker(QThread):
                     idx_couple.append(array_coord)
                 idx_couple = np.array(idx_couple) # conversion en matrice numpy pour les performances
                 # Calcul des distances ADN et ARN
-                dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
+                dist_array, flag_array, err_message_array = ComputeDistanceManuel_wrapper(idx_couple, exon_pos_list)
                 
                 self.progress_changed.emit(i+1)  # émettre le signal de progression
                 row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
@@ -144,3 +144,18 @@ class ParallelDistancesWorker(QThread):
 
         # Une fois fini :
         self.finished_signal.emit()
+
+if __name__ == "__main__":
+    df_ref = pd.read_csv(".\src\\Ressources\\data\\data_filteredfinal.tsv", sep = "\t")
+    df_second = pd.read_csv(".\src\\Ressources\\filteredRmats\A5SS_+.csv")
+    comparison_couples = [("start_genomic", "shortSplice"), ("end_genomic", "longSplice")]
+    output_dir = ".\src\\Ressources\\output_calcul"
+    release = 102
+    species = "mus_musculus"
+    dist = DistancesWorker(df_ref= df_ref,
+                           df_second= df_second,
+                           comparison_couples= comparison_couples,
+                           output_dir= output_dir,
+                           release= release,
+                           species= species)
+    dist.start()
