@@ -237,7 +237,10 @@ def process_chunk(df_chunk: pd.DataFrame,
     for i in range(len(df_chunk)):
         row_ref = df_chunk.iloc[i]
         # Récupération du Transcript et des exons
-        transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
+        try: # si l'id n'est pas connu dans la base de données
+            transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
+        except Exception as e:
+            continue
         exon_pos_list = transcript.exon_intervals
         # Filtre sur df_splicing
         df_same_gene = df_splicing.loc[df_splicing["GeneID"] == row_ref["GeneID"]]
@@ -245,8 +248,11 @@ def process_chunk(df_chunk: pd.DataFrame,
             row_compare = df_same_gene.iloc[y]
             idx_couple = []
             for couple in comparison_couples:
-                array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
-                idx_couple.append(array_coord)
+                try:
+                    array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                    idx_couple.append(array_coord)
+                except Exception as e:
+                    raise Exception(f"Error while converting coordinates to int. Reload the window: {e}")
             idx_couple = np.array(idx_couple)
             # Calcul des distances
             dist_array, flag_array, err_message_array = ComputeDistanceManuel_wrapper(idx_couple, exon_pos_list)
@@ -345,7 +351,10 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
     for i in range(len(df_prot)):
         row_ref = df_prot.iloc[i]
         # Récupération du Transcript et des exons
-        transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
+        try: # si l'id n'est pas connu dans la base de données
+            transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
+        except Exception as e:
+            continue
         exon_pos_list = transcript.exon_intervals
         # Filtre sur df_splicing
         df_same_gene = df_splicing.loc[df_splicing["GeneID"] == row_ref["GeneID"]]
@@ -353,8 +362,11 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
             row_compare = df_same_gene.iloc[y]
             idx_couple = []
             for couple in comparison_couples:
-                array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
-                idx_couple.append(array_coord)
+                try:
+                    array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                    idx_couple.append(array_coord)
+                except Exception as e:
+                    raise Exception(f"Error while converting coordinates to int. Reload the window: {e}")
             idx_couple = np.array(idx_couple)
             # Calcul des distances
             dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)

@@ -10,7 +10,7 @@ class DistancesWorkerAll(QThread):
     # On déclare les signaux dans la classe
     progress_changed = pyqtSignal(int)
     finished_signal = pyqtSignal()
-
+    error_signal = pyqtSignal(str)
     def __init__(self, df_ref : pd.DataFrame, 
                  input_df : dict[str : pd.DataFrame], 
                  comparison_couples : dict[str : [tuple[str, str]]], 
@@ -51,8 +51,11 @@ class DistancesWorkerAll(QThread):
             for i in range(len(data_prot)): # parcours des différentes lignes de la table de fixation des protéines
                 cpt += 1
                 row_ref = data_prot.iloc[i] # stocke la ligne pour la lisibilité
-                # on récupère les coordonnées des exons
-                transcript : pb.Transcript = self.bdd.transcript_by_id(row_ref.get("ensembl_id", ""))
+                        # on récupère les coordonnées des exons
+                try: # si l'id n'est pas connu dans la base de données
+                    transcript : pb.Transcript = self.bdd.transcript_by_id(row_ref["ensembl_id"])
+                except Exception as e:
+                    continue
                 exon_pos_list = transcript.exon_intervals
                 # filtre les données pour limiter les calculs
                 df_same_gene : pd.DataFrame = data_splicing.loc[data_splicing["GeneID"] == row_ref["GeneID"]]
@@ -60,8 +63,12 @@ class DistancesWorkerAll(QThread):
                     row_compare = df_same_gene.iloc[y]
                     idx_couple = []
                     for couple in comparison_couples: # on parcours les différentes combinaisons à effectuer
-                        array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
-                        idx_couple.append(array_coord)
+                        try:
+                            array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                            idx_couple.append(array_coord)
+                        except Exception as e:
+                            self.error_signal.emit(f"Error while converting coordinates into integers. Please check your data and reload the window: {e}")
+                            return
                     idx_couple = np.array(idx_couple) # conversion en matrice numpy pour les performances
                     # Calcul des distances ADN et ARN
                     dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
