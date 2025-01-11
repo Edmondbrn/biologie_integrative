@@ -1,12 +1,12 @@
 # --------------------------------------------------------------------
-# Utiliser l'image Miniconda comme base (utile pour les dépendances python sinon faut installer anaconda depuis l'image ubuntu)
+# Utilise l'image Miniconda comme base (utile pour les dépendances python sinon faut installer anaconda depuis l'image ubuntu)
 # --------------------------------------------------------------------
     FROM continuumio/miniconda3:latest
 
     ENV DEBIAN_FRONTEND=noninteractive
     
     # --------------------------------------------------------------------
-    # 2) Installer les dépendances bash nécessaires
+    # Installe les dépendances bash nécessaires
     # --------------------------------------------------------------------
     RUN apt-get update && apt-get install -y \
         x11-apps \

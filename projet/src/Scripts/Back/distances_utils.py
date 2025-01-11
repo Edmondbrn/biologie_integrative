@@ -250,6 +250,8 @@ def process_chunk(df_chunk: pd.DataFrame,
             row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
             rna_indices = {}
             for i_couple, couple in enumerate(comparison_couples):
+                row_dna[f"coord_{couple[0]}"] = row_ref[couple[0]]
+                row_dna[f"coord_{couple[1]}"] = row_compare[couple[1]]
                 row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[i_couple]
                 rna_indices[len(comparison_couples) + i_couple] = f"{couple[0]}-{couple[1]}"
             # Construire la ligne "ARN"
@@ -356,6 +358,8 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
             row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
             rna_indices = {}
             for i_couple, couple in enumerate(comparison_couples):
+                row_dna[f"coord_{couple[0]}"] = row_ref[couple[0]]
+                row_dna[f"coord_{couple[1]}"] = row_compare[couple[1]]
                 row_dna[f"{couple[0]}-{couple[1]}"] = dist_array[i_couple]
                 rna_indices[len(comparison_couples) + i_couple] = f"{couple[0]}-{couple[1]}"
             # Construire la ligne "ARN"

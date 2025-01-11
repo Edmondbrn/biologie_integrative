@@ -318,12 +318,12 @@ class ManualDistancesWindow(QDialog):
             try:
                 self.startParallelCalculation(comparison_list)
             except Exception as e:
-                show_alert("Error", "Failed to start parallel calculation.\n", e)
+                show_alert("Error", f"Failed to start parallel calculation.\n {e}")
         else:
             try :
                 self.startCalculation(comparison_list)
             except Exception as e:
-                show_alert("Error", "Failed to start calculation.\n", e)
+                show_alert("Error", f"Failed to start calculation.\n {e}")
 
         
     def startCalculation(self, comparison_list, splice_name : str = ""):
@@ -345,7 +345,7 @@ class ManualDistancesWindow(QDialog):
 
             self.worker.start()
         except Exception as e:
-            show_alert("Error", "Failed to start calculation.\n", e)
+            show_alert("Error", f"Failed to start calculation.\n {e}")
             return
 
     def startParallelCalculation(self, comparison_list, splice_name : str = ""):
@@ -370,7 +370,7 @@ class ManualDistancesWindow(QDialog):
 
             self.worker.start()
         except Exception as e:
-            show_alert("Error", "Failed to start parallel calculation.\n", e)
+            show_alert("Error", f"Failed to start parallel calculation.\n, {e}")
             return
 
     def updateParallelProgressBar(self, rows_done: int):
