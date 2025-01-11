@@ -237,7 +237,10 @@ def process_chunk(df_chunk: pd.DataFrame,
     for i in range(len(df_chunk)):
         row_ref = df_chunk.iloc[i]
         # Récupération du Transcript et des exons
-        transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
+        try: # si l'id n'est pas connu dans la base de données
+            transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
+        except Exception as e:
+            continue
         exon_pos_list = transcript.exon_intervals
         # Filtre sur df_splicing
         df_same_gene = df_splicing.loc[df_splicing["GeneID"] == row_ref["GeneID"]]
@@ -345,7 +348,10 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
     for i in range(len(df_prot)):
         row_ref = df_prot.iloc[i]
         # Récupération du Transcript et des exons
-        transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
+        try: # si l'id n'est pas connu dans la base de données
+            transcript : pb.Transcript = bdd.transcript_by_id(row_ref["ensembl_id"])
+        except Exception as e:
+            continue
         exon_pos_list = transcript.exon_intervals
         # Filtre sur df_splicing
         df_same_gene = df_splicing.loc[df_splicing["GeneID"] == row_ref["GeneID"]]

@@ -55,7 +55,10 @@ class DistancesWorker(QThread):
         for i in range(len(data_prot)): # parcours des différentes lignes de la table de fixation des protéines
             row_ref = data_prot.iloc[i] # stocke la ligne pour la lisibilité
             # on récupère les coordonnées des exons
-            transcript : pb.Transcript = self.bdd.transcript_by_id(row_ref["ensembl_id"])
+            try: # si l'id n'est pas connu dans la base de données
+                transcript : pb.Transcript = self.bdd.transcript_by_id(row_ref["ensembl_id"])
+            except Exception as e:
+                continue
             exon_pos_list = transcript.exon_intervals
             # filtre les données pour limiter les calculs
             df_same_gene : pd.DataFrame = data_splicing.loc[data_splicing["GeneID"] == row_ref["GeneID"]]
