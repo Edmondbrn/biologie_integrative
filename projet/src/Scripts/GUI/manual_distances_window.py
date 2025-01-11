@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
     QLabel, QPlainTextEdit, QDialog, QFileDialog, QComboBox, QCheckBox,
@@ -17,7 +17,8 @@ from ..Back.DistanceWorker import DistancesWorker, ParallelDistancesWorker
 from ..GLOBAL import *
 
 class ManualDistancesWindow(QDialog):
-    def __init__(self):
+    data_signal = pyqtSignal(list)
+    def __init__(self, reference_file, genomic_file):
         super().__init__()
         self.setWindowTitle("Manual Calculation")
         self.resize(WINDOW_HEIGHT // 2, WINDOW_WIDTH // 2)
@@ -33,9 +34,15 @@ class ManualDistancesWindow(QDialog):
         self.main_layout.addWidget(self.label_title)
 
         # ====================== SECTION FICHIER 1 =======================
-        self.create_reference_file_section()
+        if reference_file is not None:
+            pass
+        else:
+            self.create_reference_file_section()
         # ====================== SECTION FICHIER 2 =======================
-        self.create_second_file_section()
+        if genomic_file is not None:
+            pass
+        else:
+            self.create_second_file_section()
 
         # ====================== SECTION SELECT OUTPUT DIRECTORY AND RESULT FILE NAMEs =======================
         self.create_output_section()
@@ -44,6 +51,8 @@ class ManualDistancesWindow(QDialog):
         # Bouton de validation
         self.validate_button = QPushButton("Validate")
         self.validate_button.clicked.connect(self.validate_files)
+        self.validate_button.clicked.connect(lambda: self.send_files(self.df_ref, self.df_second))
+
         self.main_layout.addWidget(self.validate_button)
 
         self.setLayout(self.main_layout)
@@ -188,9 +197,15 @@ class ManualDistancesWindow(QDialog):
             show_alert("Error", f"Failed to read files: {e}")
             return
         
+
+
+    def send_files(self, first_file, second_file):
+        files = [first_file, second_file]
+        self.data_signal.emit(files)
+        
     def addThreadsSelection(self):
         """
-        Method to add the number of processing to use durinf the calculation.
+        Method to add the number of processing to use during the calculation.
         """
         box_multi = QHBoxLayout()
         self.choose_parallelisation = QLabel("Activate multithreading ? (not recommended on Windows)")
