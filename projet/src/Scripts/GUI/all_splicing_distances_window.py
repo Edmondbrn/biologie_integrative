@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 )
 import pandas as pd
 import os
+import traceback
 
 from .manual_distances_window import ManualDistancesWindow
 from .app_utils import show_alert, load_stylesheet
@@ -170,14 +171,19 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         """
         # Get all the pairs in a correct format for the Distances class
         # TODO prendre en compte l'organisme et la version de ensembl ICI
-        if self.choice.isChecked():
-            self.startParallelCalculation()
+        if self.comparison_text.toPlainText() != "":
+            if self.choice.isChecked():
+                self.startParallelCalculation()
+            else:
+                self.startCalculation()
         else:
-            self.startCalculation()
+            show_alert("Error", "No pair to compare")
 
     def startCalculation(self):
         # Création du thread
         try:
+            if self.df_ref.get("ensembl_id") is None:
+                raise Exception("The 'ensembl_id' column is not found in the reference file.")
             self.worker = DistancesWorkerAll(df_ref = self.df_ref, 
                                          input_df = self.dict_splicing_files, 
                                          comparison_couples = self.dict_splice_couples,
@@ -193,7 +199,7 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
 
             self.worker.start()
         except Exception as e:
-            show_alert("Error", f"Failed to start calculation: {e}")
+            show_alert("Error", f"Failed in calculation\n {traceback.format_exc()}.")
             return
 
     def startParallelCalculation(self):
@@ -201,6 +207,8 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
         """
         try :
+            if self.df_ref.get("ensembl_id") is None:
+                raise Exception("The 'ensembl_id' column is not found in the reference file.")
             self.worker = ParallelDistancesWorkerAll(df_ref=self.df_ref,
                                                 input_dfs=self.dict_splicing_files,
                                                 comparison_couples=self.dict_splice_couples,
@@ -217,7 +225,7 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
 
             self.worker.start()
         except Exception as e:
-            show_alert("Error", f"Failed to start parallel calculation: {e}")
+            show_alert("Error", f"Failed in parallel calculation\n {traceback.format_exc()}.")
             return
 
 

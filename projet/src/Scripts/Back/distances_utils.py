@@ -4,6 +4,7 @@ import numpy as np
 import pyensembl as pb
 from multiprocessing import Pool, cpu_count
 import os
+from ..GUI.app_utils import show_alert
 
 ERROR_DICT = {4 : "Error while converting dna to rna",
                 1 : "Not on the same transcript",
@@ -12,11 +13,14 @@ ERROR_DICT = {4 : "Error while converting dna to rna",
                 0 : "No problemo"}
 
 def FilterDataProt(df_prot : pd.DataFrame) -> pd.DataFrame:
-    # enleve les lignes avec des str sur la colonne start_ensembl
-    if not isinstance(df_prot, pd.DataFrame):
-        raise TypeError("The input must be a DataFrame")
-    df_prot = df_prot.loc[df_prot["start_genomic"].apply(lambda x: str(x).isnumeric())]
-    return df_prot
+    # enleve les lignes avec des str sur la colonne start_genomic
+    try:
+        if not isinstance(df_prot, pd.DataFrame):
+            raise TypeError("The input must be a DataFrame")
+        df_prot = df_prot.loc[df_prot["start_genomic"].apply(lambda x: str(x).isnumeric())]
+        return df_prot
+    except Exception as e:
+        return df_prot
 
 def fill_rna_row(rna_indices : dict, dist_array : int, flag : bool, err_message :int , 
                     transcript_id : int, protein_sequence : str):
@@ -247,7 +251,7 @@ def process_chunk(df_chunk: pd.DataFrame,
             # Calcul des distances
             dist_array, flag_array, err_message_array = ComputeDistanceManuel_wrapper(idx_couple, exon_pos_list)
             # Construire la ligne "ADN"
-            row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
+            row_dna = {"transcript_ID": row_ref.get("ensembl_id", ""), "prot_seq": row_ref.get("seq", "")}
             rna_indices = {}
             for i_couple, couple in enumerate(comparison_couples):
                 row_dna[f"coord_{couple[0]}"] = row_ref[couple[0]]
@@ -260,8 +264,8 @@ def process_chunk(df_chunk: pd.DataFrame,
                 dist_array,
                 flag_array,
                 err_message_array,
-                row_ref["ensembl_id"],
-                row_ref["seq"])
+                row_ref.get("ensembl_id", ""),
+                row_ref.get("seq", ""))
             results_dna.append(row_dna)
             results_rna.append(row_rna)
     df_dna = pd.DataFrame(results_dna)
@@ -355,7 +359,7 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
             # Calcul des distances
             dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
             # Construire la ligne "ADN"
-            row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
+            row_dna = {"transcript_ID": row_ref.get("ensembl_id", ""), "prot_seq": row_ref.get("seq", "")}
             rna_indices = {}
             for i_couple, couple in enumerate(comparison_couples):
                 row_dna[f"coord_{couple[0]}"] = row_ref[couple[0]]
@@ -368,8 +372,8 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
                 dist_array,
                 flag_array,
                 err_message_array,
-                row_ref["ensembl_id"],
-                row_ref["seq"])
+                row_ref.get("ensembl_id", ""),
+                row_ref.get("seq", ""))
             results_dna.append(row_dna)
             results_rna.append(row_rna)
     df_dna = pd.DataFrame(results_dna)

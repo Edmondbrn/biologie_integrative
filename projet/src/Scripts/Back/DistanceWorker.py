@@ -70,7 +70,7 @@ class DistancesWorker(QThread):
                 dist_array, flag_array, err_message_array = ComputeDistanceManuel_wrapper(idx_couple, exon_pos_list)
                 
                 self.progress_changed.emit(i+1)  # émettre le signal de progression
-                row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
+                row_dna = {"transcript_ID": row_ref.get("ensembl_id", ""), "prot_seq": row_ref.get("seq","")}
                 rna_indices = {}
                 for y, couple in enumerate(self.comparison_couples):
                     row_dna[f"coord_{couple[0]}"] = row_ref[couple[0]]
@@ -83,8 +83,8 @@ class DistancesWorker(QThread):
                     dist_array,
                     flag_array,
                     err_message_array,
-                    row_ref["ensembl_id"],
-                    row_ref["seq"]
+                    row_ref.get("ensembl_id", ""),
+                    row_ref.get("seq", "")
                 )
                 results_dna.append(row_dna)
                 results_rna.append(row_rna)

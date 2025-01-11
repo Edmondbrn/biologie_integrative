@@ -52,7 +52,7 @@ class DistancesWorkerAll(QThread):
                 cpt += 1
                 row_ref = data_prot.iloc[i] # stocke la ligne pour la lisibilité
                 # on récupère les coordonnées des exons
-                transcript : pb.Transcript = self.bdd.transcript_by_id(row_ref["ensembl_id"])
+                transcript : pb.Transcript = self.bdd.transcript_by_id(row_ref.get("ensembl_id", ""))
                 exon_pos_list = transcript.exon_intervals
                 # filtre les données pour limiter les calculs
                 df_same_gene : pd.DataFrame = data_splicing.loc[data_splicing["GeneID"] == row_ref["GeneID"]]
@@ -66,7 +66,7 @@ class DistancesWorkerAll(QThread):
                     # Calcul des distances ADN et ARN
                     dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
                     self.progress_changed.emit(cpt)  # émettre le signal de progression
-                    row_dna = {"transcript_ID": row_ref["ensembl_id"], "prot_seq": row_ref["seq"]}
+                    row_dna = {"transcript_ID": row_ref.get("ensembl_id", ""), "prot_seq": row_ref.get("seq","")}
                     rna_indices = {}
                     for y, couple in enumerate(comparison_couples):
                         row_dna[f"coord_{couple[0]}"] = row_ref[couple[0]]
@@ -79,8 +79,8 @@ class DistancesWorkerAll(QThread):
                         dist_array,
                         flag_array,
                         err_message_array,
-                        row_ref["ensembl_id"],
-                        row_ref["seq"]
+                        row_ref.get("ensembl_id", ""),
+                        row_ref.get("seq", "")
                     )
                     results_dna.append(row_dna)
                     results_rna.append(row_rna)

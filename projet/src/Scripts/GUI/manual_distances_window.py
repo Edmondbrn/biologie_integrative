@@ -9,9 +9,8 @@ from .app_utils import load_stylesheet, show_alert
 
 import os
 import pandas as pd
-import numpy as np
+import traceback
 
-from ..Back.distances import Distances
 from ..Back.distances_utils import FilterDataProt
 from ..Back.DistanceWorker import DistancesWorker, ParallelDistancesWorker
 
@@ -313,23 +312,23 @@ class ManualDistancesWindow(QDialog):
             comparison_list.append(couple)
         # TODO prendre en compte l'organisme et la version de ensembl ICI
 
-                 
-        if self.choice.isChecked():
-            try:
+        if self.comparison_text.toPlainText() != "":         
+            if self.choice.isChecked():
                 self.startParallelCalculation(comparison_list)
-            except Exception as e:
-                show_alert("Error", f"Failed to start parallel calculation.\n {e}")
-        else:
-            try :
+            else:
                 self.startCalculation(comparison_list)
-            except Exception as e:
-                show_alert("Error", f"Failed to start calculation.\n {e}")
+        else:
+            show_alert("Error", "No comparison pair selected.")
+            return
+
 
         
     def startCalculation(self, comparison_list, splice_name : str = ""):
         # Création du thread
         try:
             # TODO quand on doit télécharger / charger un génome, on doit chnager le svaleurs dans GLOBAL.py
+            if self.df_ref.get("ensembl_id") is None:
+                raise Exception("The 'ensembl_id' column is not found in the reference file.")
             self.worker = DistancesWorker(df_ref = self.df_ref, 
                                     df_second = self.df_second, 
                                     comparison_couples = comparison_list,
@@ -345,7 +344,7 @@ class ManualDistancesWindow(QDialog):
 
             self.worker.start()
         except Exception as e:
-            show_alert("Error", f"Failed to start calculation.\n {e}")
+            show_alert("Error", f"Failed in calculation.\n  {traceback.format_exc()}.")
             return
 
     def startParallelCalculation(self, comparison_list, splice_name : str = ""):
@@ -353,6 +352,8 @@ class ManualDistancesWindow(QDialog):
         Method to initiate the parallel calculation of the distances. and to link the signals to the GUI.
         """
         try:
+            if self.df_ref.get("ensembl_id") is None:
+                raise Exception("The 'ensembl_id' column is not found in the reference file.")
             # TODO quand on doit télécharger / charger un génome, on doit chnager le svaleurs dans GLOBAL.py
             self.worker = ParallelDistancesWorker(df_ref=self.df_ref,
                                                 df_splicing=self.df_second,
@@ -370,7 +371,7 @@ class ManualDistancesWindow(QDialog):
 
             self.worker.start()
         except Exception as e:
-            show_alert("Error", f"Failed to start parallel calculation.\n, {e}")
+            show_alert("Error", f"Failed in parallel calculcation.\n {traceback.format_exc()}..")
             return
 
     def updateParallelProgressBar(self, rows_done: int):
