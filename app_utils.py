@@ -11,7 +11,7 @@ import pandas as pd
 from distances import Distances
 
 class FileDialogManual(QDialog):
-    def __init__(self):
+    def __init__(self, _file, genomic_file):
         super().__init__()
         self.setWindowTitle("Manual Calculation")
         self.resize(WINDOW_HEIGHT // 2, WINDOW_WIDTH // 2)

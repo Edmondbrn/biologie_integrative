@@ -59,7 +59,6 @@ class MainWindow(QMainWindow):
         # On créé une barre d'outils
         toolbar = QToolBar("My main toolbar")
         toolbar.setObjectName("My main toolbar")
-        toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.addToolBar(toolbar)
 
         # ============================ définition des boutons ===============================
@@ -104,7 +103,7 @@ class MainWindow(QMainWindow):
         calculate_distances_menu.addAction(action_all_splicing)
 
         action_manual = QAction("Manual calculation", self)
-        action_manual.triggered.connect(lambda: self.onManualDistances())
+        action_manual.triggered.connect(lambda: self.onManualDistances(self.prot_file, self.genomic_file))
         action_manual.setStatusTip("Calculate distances manually")
         calculate_distances_menu.addAction(action_manual)
 
@@ -122,8 +121,8 @@ class MainWindow(QMainWindow):
         action_menu.addAction(button_convert)
         action_menu.addMenu(calculate_distances_menu)
 
-    def onManualDistances(self):
-        dialog = FileDialogManual()
+    def onManualDistances(self, reference_file, genomic_file):
+        dialog = FileDialogManual(reference_file, genomic_file)
         dialog.exec()
 
 
@@ -145,7 +144,7 @@ class MainWindow(QMainWindow):
 
     def file_loader(self):
         if self.file_path:
-            file_object = pd.read_csv(self.file_path, sep="\t", index_col=0)
+            file_object = pd.read_csv(self.file_path, sep="\t")
             verification_column = 'gene_name'
             if verification_column in file_object.columns: #TODO vérification sur le type de fichier pour pas ouvrir n'importe quoi, et faire un tri également sur les colonnes du fichier génomique
                 if self.prot_file is not None:
