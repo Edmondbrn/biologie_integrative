@@ -10,7 +10,7 @@ class DistancesWorkerAll(QThread):
     # On déclare les signaux dans la classe
     progress_changed = pyqtSignal(int)
     finished_signal = pyqtSignal()
-
+    error_signal = pyqtSignal(str)
     def __init__(self, df_ref : pd.DataFrame, 
                  input_df : dict[str : pd.DataFrame], 
                  comparison_couples : dict[str : [tuple[str, str]]], 
@@ -63,8 +63,12 @@ class DistancesWorkerAll(QThread):
                     row_compare = df_same_gene.iloc[y]
                     idx_couple = []
                     for couple in comparison_couples: # on parcours les différentes combinaisons à effectuer
-                        array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
-                        idx_couple.append(array_coord)
+                        try:
+                            array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                            idx_couple.append(array_coord)
+                        except Exception as e:
+                            self.error_signal.emit(f"Error while converting coordinates into integers. Please check your data and reload the window: {e}")
+                            return
                     idx_couple = np.array(idx_couple) # conversion en matrice numpy pour les performances
                     # Calcul des distances ADN et ARN
                     dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)

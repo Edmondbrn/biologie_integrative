@@ -245,6 +245,11 @@ class ManualDistancesWindow(QDialog):
         self.add_comparison_button.clicked.connect(self.add_comparison)
         self.button_compare_box.addWidget(self.add_comparison_button)
 
+        # bouton remove le dernier couple de colonnes à avoir été ajouté
+        self.remove_comparison_button = QPushButton("Remove comparisons")
+        self.remove_comparison_button.clicked.connect(self.clear_comparison)
+        self.button_compare_box.addWidget(self.remove_comparison_button)
+
         # Bouton "Compare"
         self.compare_button = QPushButton("Compare")
         self.compare_button.clicked.connect(self.compare_columns)
@@ -301,6 +306,18 @@ class ManualDistancesWindow(QDialog):
         else:
             show_alert("Warning", f"The pair '{pair}' already exists.")
 
+    def clear_comparison(self):
+        """
+        Efface la dernière paire de colonnes ajoutée.
+        """
+        if len(self.compare_pairs) > 0:
+            self.compare_pairs.pop()
+            self.comparison_text.clear()
+            for pair in self.compare_pairs:
+                self.comparison_text.appendPlainText(pair)
+        else:
+            show_alert("Warning", "No comparison pair to remove.")
+
     def compare_columns(self):
         """
         Compare toutes les paires stockées dans self.compare_pairs.
@@ -339,13 +356,17 @@ class ManualDistancesWindow(QDialog):
             
             self.worker.progress_changed.connect(self.updateProgressBar)
             self.worker.finished_signal.connect(self.onCalculationFinished)
-
+            self.worker.error_signal.connect(self.onWorkerError)
             self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
 
             self.worker.start()
         except Exception as e:
             show_alert("Error", f"Failed in calculation.\n  {traceback.format_exc()}.")
             return
+        
+
+    def onWorkerError(self, error_message):
+        show_alert("Error", f"Failed in calculation.\n  {error_message}.")
 
     def startParallelCalculation(self, comparison_list, splice_name : str = ""):
         """

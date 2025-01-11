@@ -194,6 +194,7 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         
             self.worker.progress_changed.connect(self.updateProgressBar)
             self.worker.finished_signal.connect(self.onCalculationFinished)
+            self.worker.error_signal.connect(self.onWorkerError)
 
             self.addProgressBar() # ajout de la barre de progression avant de lancer le calcul
 
@@ -201,6 +202,9 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         except Exception as e:
             show_alert("Error", f"Failed in calculation\n {traceback.format_exc()}.")
             return
+    
+    def onWorkerError(self, error_message):
+        show_alert("Error", f"Failed in calculation.\n  {error_message}.")
 
     def startParallelCalculation(self):
         """

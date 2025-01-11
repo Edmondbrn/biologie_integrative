@@ -248,8 +248,11 @@ def process_chunk(df_chunk: pd.DataFrame,
             row_compare = df_same_gene.iloc[y]
             idx_couple = []
             for couple in comparison_couples:
-                array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
-                idx_couple.append(array_coord)
+                try:
+                    array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                    idx_couple.append(array_coord)
+                except Exception as e:
+                    raise Exception(f"Error while converting coordinates to int. Reload the window: {e}")
             idx_couple = np.array(idx_couple)
             # Calcul des distances
             dist_array, flag_array, err_message_array = ComputeDistanceManuel_wrapper(idx_couple, exon_pos_list)
@@ -359,8 +362,11 @@ def process_chunk_splicing(df_prot: pd.DataFrame,
             row_compare = df_same_gene.iloc[y]
             idx_couple = []
             for couple in comparison_couples:
-                array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
-                idx_couple.append(array_coord)
+                try:
+                    array_coord = np.array([int(row_ref[couple[0]]), int(row_compare[couple[1]])])
+                    idx_couple.append(array_coord)
+                except Exception as e:
+                    raise Exception(f"Error while converting coordinates to int. Reload the window: {e}")
             idx_couple = np.array(idx_couple)
             # Calcul des distances
             dist_array, flag_array, err_message_array = ComputeDistanceManual(idx_couple, exon_pos_list)
