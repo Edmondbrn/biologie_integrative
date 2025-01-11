@@ -34,6 +34,8 @@ class MainWindow(QMainWindow):
         self.prot_file = None
         self.genomic_file = None
 
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+
         self.setWindowTitle("BI Project")
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
 
@@ -77,12 +79,6 @@ class MainWindow(QMainWindow):
         button_load_data.triggered.connect(self.open_file_dialog)
         toolbar.addAction(button_load_data)
 
-        # Bouton pour sauvegarder les données
-        buttton_save_data = QAction(QIcon(f"{ICON_PATH}disk.png"), "Save data", self)
-        buttton_save_data.setStatusTip("Save data to a CSV table")
-        buttton_save_data.triggered.connect(lambda: self.onMyToolBarButtonClick("test pression bouton"))
-        toolbar.addAction(buttton_save_data)
-
         # bouton pour quitter l'application
         button_quit = QAction(QIcon(f"{ICON_PATH}door-open-out.png"), "Quit", self)
         button_quit.setStatusTip("Close application")
@@ -102,12 +98,12 @@ class MainWindow(QMainWindow):
         for splice_type in [ "A5SS", "A3SS", "RI", "MXE", "SE"]:
             action = QAction(f"Calculate distances for {splice_type}", self)
             action.setStatusTip(f"Calculate distances for {splice_type} events")
-            action.triggered.connect(lambda checked, st=splice_type: self.onCalculateDistances(st))
+            action.triggered.connect(lambda checked, st=splice_type: self.onCalculateDistances(st, self.prot_file, self.genomic_file))
             calculate_distances_menu.addAction(action)
 
         # Ajoute les options all_splicing et manual
         action_all_splicing = QAction("Calculate distances for all splicing", self)
-        action_all_splicing.triggered.connect(lambda: self.onCalculateDistances("all_splicing"))
+        action_all_splicing.triggered.connect(lambda: self.onCalculateDistances("all_splicing", self.prot_file, self.genomic_file))
         action_all_splicing.setStatusTip("Calculate distances for all splicing events")
         calculate_distances_menu.addAction(action_all_splicing)
 
@@ -123,7 +119,6 @@ class MainWindow(QMainWindow):
         # menu File de la barre de tâches
         file_menu = menu.addMenu("File")
         file_menu.addAction(button_load_data)
-        file_menu.addAction(buttton_save_data)
         file_menu.addAction(button_quit)
         # Menu Action de la barre de tâches
         action_menu = menu.addMenu("Actions")
@@ -190,6 +185,14 @@ class MainWindow(QMainWindow):
                 if sep in first_line:
                     return sep
         return ','  # Default to comma if no separator is found
+    
+    def onCalculateDistances(self, splice_type, reference_file, genomic_file):
+        dialog = SplicingDistancesWindow(splice_type, reference_file, genomic_file)
+        dialog.exec()
+
+    def onCalculateAllDistances(self, reference_file, genomic_file):
+        dialog = AllSplicingDistancesWindow("all_splicing", reference_file, genomic_file)
+        dialog.exec()
 
     def dynamic_menues(self, toolbar):
         if self.prot_file is not None and self.findChild(QMenu, "Fichier protéine") is None: #TODO n'arrive pas à lire les fichiers pour FMRP

@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QLabel, QPlainTextEdit, QDialog, QFileDialog, QComboBox, QCheckBox,
     QSpinBox, QProgressBar
 )
+from PyQt6.QtGui import QAction, QIcon
 from .app_utils import load_stylesheet, show_alert
 
 import os
@@ -22,8 +23,9 @@ class ManualDistancesWindow(QDialog):
         super().__init__()
         self.setWindowTitle("Manual Calculation")
         self.resize(WINDOW_HEIGHT // 2, WINDOW_WIDTH // 2)
-
+        self.df_ref, self.df_second = None, None
         self.file_dict = {"reference": None, "second": None}
+        self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
 
         self.main_layout = QVBoxLayout(self)
 
@@ -51,7 +53,8 @@ class ManualDistancesWindow(QDialog):
         # Bouton de validation
         self.validate_button = QPushButton("Validate")
         self.validate_button.clicked.connect(self.validate_files)
-        self.validate_button.clicked.connect(lambda: self.send_files(self.df_ref, self.df_second))
+        if self.df_ref is not None and self.df_second is not None:
+            self.validate_button.clicked.connect(lambda: self.send_files(self.df_ref, self.df_second))
 
         self.main_layout.addWidget(self.validate_button)
 

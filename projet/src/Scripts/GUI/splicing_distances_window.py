@@ -9,10 +9,11 @@ from ..GLOBAL import *
 
 class SplicingDistancesWindow(ManualDistancesWindow):
     
-    def __init__(self, splice_type : str):
-        super().__init__()
+    def __init__(self, splice_type : str, reference_file=None, genomic_file=None):
+        super().__init__(reference_file, genomic_file)
         self.splice = splice_type
         self.couple = []
+        self.setWindowTitle("Splicing Distance Calculation")
 
     def addColumnsSelection(self):
         """

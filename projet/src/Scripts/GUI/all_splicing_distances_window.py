@@ -18,10 +18,11 @@ from ..GLOBAL import *
 
 class AllSplicingDistancesWindow(ManualDistancesWindow):
     
-    def __init__(self, splice_type : str):
-        super().__init__()
+    def __init__(self, splice_type : str, reference_file, genomic_file):
+        super().__init__(reference_file, genomic_file)
         self.splice = splice_type
         self.couple = []
+        self.setWindowTitle("All Splicing Dis Calculation")
 
     def create_second_file_section(self):
         """
