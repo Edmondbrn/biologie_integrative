@@ -60,10 +60,9 @@ class ManualDistancesWindow(QDialog):
 
         self.main_layout.addWidget(self.validate_button)
 
-        self.bar = QProgressBar()
+        self.bar = QSpinBox()
         self.bar.setValue(50)
         self.bar.setFixedWidth(300)
-        self.bar.setFormat("%p%")
         self.first_update = True
         self.main_layout.addWidget(self.bar)
 
@@ -279,6 +278,7 @@ class ManualDistancesWindow(QDialog):
 
         # Bouton "Compare"
         self.compare_button = QPushButton("Compare")
+        self.compare_button.setObjectName("compare_button")
         self.compare_button.clicked.connect(self.compare_columns)
         self.button_compare_box.addWidget(self.compare_button)
 
