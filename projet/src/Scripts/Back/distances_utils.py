@@ -4,7 +4,6 @@ import numpy as np
 import pyensembl as pb
 from multiprocessing import Pool, cpu_count
 import os
-from ..GUI.app_utils import show_alert
 
 ERROR_DICT = {4 : "Error while converting dna to rna",
                 1 : "Not on the same transcript",
