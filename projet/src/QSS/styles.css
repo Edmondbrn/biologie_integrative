@@ -47,20 +47,37 @@ QPushButton#validate_button {
     background-color: #267b8a;
     padding: 10px;
 }
-QPushButton#validate_button {
-    background-color: #267b8a;
-    padding: 10px;
-}
 
+QPushButton#validate_button:hover{
+    background-color: #52a0df;
+}
 
 QPushButton#compare_button {
     background-color: #267b8a;
     padding: 10px;
 }
-QPushButton#validate_button:hover {
-    background-color: rgba(66, 242, 255, 0.596) ;
+
+QPushButton#compare_button:hover{
+    background-color: #52a0df;
 }
 
+QPushButton#remove_comparison_button{
+    background-color: #d69696;
+    padding: 10px;
+}
+
+QPushButton#remove_comparison_button:hover{
+    background-color: #ff0000;
+}
+
+QPushButton#add_comparison_button{
+    background-color: #96d6a7;
+    padding: 10px;
+}
+
+QPushButton#add_comparison_button:hover{
+    background-color: #00ff00;
+}
 
 QPushButton#logo {
     border: none;
@@ -85,4 +102,16 @@ QProgressBar {
 QProgressBar::chunk {
     background-color: #267b8a; /* Couleur de la barre de progression */
     width: 20px;
+}
+
+
+QComboBox{
+    background-color: #4e4747;
+    border-style: solid;
+    border-width : 2px;
+    border-radius: 10px;
+}
+
+QComboBox:hover{
+    background-color: #4e4b4b;
 }

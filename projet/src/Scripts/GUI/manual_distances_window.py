@@ -60,12 +60,6 @@ class ManualDistancesWindow(QDialog):
 
         self.main_layout.addWidget(self.validate_button)
 
-        self.bar = QSpinBox()
-        self.bar.setValue(50)
-        self.bar.setFixedWidth(300)
-        self.first_update = True
-        self.main_layout.addWidget(self.bar)
-
         self.setLayout(self.main_layout)
 
     def create_reference_file_section(self):
@@ -268,11 +262,13 @@ class ManualDistancesWindow(QDialog):
 
         # Bouton d'ajout de comparaison
         self.add_comparison_button = QPushButton("Add comparison")
+        self.add_comparison_button.setObjectName("add_comparison_button")
         self.add_comparison_button.clicked.connect(self.add_comparison)
         self.button_compare_box.addWidget(self.add_comparison_button)
 
         # bouton remove le dernier couple de colonnes à avoir été ajouté
         self.remove_comparison_button = QPushButton("Remove comparisons")
+        self.remove_comparison_button.setObjectName("remove_comparison_button")
         self.remove_comparison_button.clicked.connect(self.clear_comparison)
         self.button_compare_box.addWidget(self.remove_comparison_button)
 
