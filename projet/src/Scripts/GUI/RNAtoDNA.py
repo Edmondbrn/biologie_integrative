@@ -137,7 +137,7 @@ class RNAtoDNAWindow(QDialog):
 
             # Enregistrez le fichier résultant dans le répertoire de sortie
             output_path = os.path.join(self.output_directory, output_name)
-            seq_finder.__data_prot.to_csv(output_path, sep="\t", index=False)
+            seq_finder.getDataProt().to_csv(output_path, sep="\t", index=False)
 
             show_alert("Info", f"RNA has been successfully converted to DNA.\nOutput saved at: {output_path}")
         except Exception as e:

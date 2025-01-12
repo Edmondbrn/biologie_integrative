@@ -37,6 +37,9 @@ class SequenceFinder():
         self.__bdd.download()
         self.__bdd.index()
 
+    def getDataProt(self):
+        return self.__data_prot
+
     
     def setAttribute(self, attibute : str, value):
         """
