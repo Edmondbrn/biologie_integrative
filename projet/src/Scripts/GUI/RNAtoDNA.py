@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
     QLabel, QFileDialog, QPlainTextEdit, QProgressBar
@@ -105,12 +105,12 @@ class RNAtoDNAWindow(QDialog):
         Bouton pour valider la sélection et lancer la conversion.
         """
         validate_button = QPushButton("Convert RNA to DNA")
-        validate_button.clicked.connect(self.convert_rna_to_dna)
+        validate_button.clicked.connect(self.start_conversion)
         self.main_layout.addWidget(validate_button)
 
-    def convert_rna_to_dna(self):
+    def start_conversion(self):
         """
-        Effectue la conversion du fichier RNA en fichier DNA.
+        Lancer la conversion via la méthode `start()` de `SequenceFinder`.
         """
         if not self.input_file:
             show_alert("Error", "Please select an input file.")
@@ -125,23 +125,35 @@ class RNAtoDNAWindow(QDialog):
             show_alert("Error", "Please enter a valid output file name.")
             return
 
-        # Ajouter la barre de progression
-        self.addProgressBar()
+        try:
+            # Lire le fichier d'entrée contenant les données ARN
+            df_rna = read_csv(self.input_file, sep="\t")
 
-        # Créer un thread pour effectuer la conversion en arrière-plan
-        self.worker_thread = ConversionWorker(self.input_file, self.output_directory, output_name)
-        self.worker_thread.progress_signal.connect(self.updateProgressBar)
-        self.worker_thread.finished.connect(self.on_conversion_finished)
-        self.worker_thread.start()
+            # Initialiser l'objet SequenceFinder
+            seq_finder = SequenceFinder(data_prot=df_rna)
+
+            # Ajout de la barre de progression avant de démarrer
+            self.addProgressBar()
+
+            # Lancer la conversion avec `start()`
+            seq_finder.start()  # Commence la conversion
+
+            # Enregistrez le fichier résultant dans le répertoire de sortie
+            output_path = os.path.join(self.output_directory, output_name)
+            seq_finder.__data_prot.to_csv(output_path, sep="\t", index=False)
+
+            show_alert("Info", f"RNA has been successfully converted to DNA.\nOutput saved at: {output_path}")
+        except Exception as e:
+            show_alert("Error", f"An error occurred during conversion: {str(e)}")
 
     def addProgressBar(self):
         # Crée la barre de progression
         self.progress = QProgressBar()
-        self.progress.setRange(0, 100)  # Valeur maximale fixée à 100 pour commencer
+        self.progress.setRange(0, len(FilterDataProt(self.df_ref)))
         self.progress.setFixedWidth(300)  # Largeur fixe
         self.progress.setFormat("%p%")
         self.first_update = True
-
+        
         # Créer un sous-layout horizontal pour centrer la barre
         self.group_progress = QGroupBox("Progress")
         self.progress_layout = QVBoxLayout(self.group_progress)
@@ -153,55 +165,16 @@ class RNAtoDNAWindow(QDialog):
 
         self.layout().addWidget(self.group_progress)
 
+    def updateParallelProgressBar(self, rows_done: int):
+        current_value = self.progress.value()
+        self.progress.setValue(current_value + rows_done)
+
     def updateProgressBar(self, value):
         """
-        Mise à jour de la barre de progression.
+        Method which is solicited when an update emit is emitted by the worker.
         """
         if self.progress:
             if self.first_update:
                 self.first_update = False
                 self.progress.setFormat("%p%")
             self.progress.setValue(value)
-
-    def on_conversion_finished(self):
-        """
-        Action à réaliser après la conversion (ex: informer l'utilisateur).
-        """
-        show_alert("Info", "RNA to DNA conversion finished!")
-        self.progress.setValue(100)  # Assurez-vous que la barre de progression est remplie à 100%
-        self.worker_thread.quit()
-
-class ConversionWorker(QThread):
-    progress_signal = pyqtSignal(int)
-
-    def __init__(self, input_file, output_directory, output_name):
-        super().__init__()
-        self.input_file = input_file
-        self.output_directory = output_directory
-        self.output_name = output_name
-
-    def run(self):
-        """
-        Effectue la conversion en arrière-plan.
-        """
-        try:
-            df_rna = read_csv(self.input_file, sep="\t")
-            seq_finder = SequenceFinder(data_prot=df_rna)
-
-            # Simuler la progression (ici on suppose que la conversion se fait en étapes)
-            total_steps = len(df_rna)
-            for step, row in enumerate(df_rna.itertuples(), start=1):
-                # Conversion (par exemple, remplace "U" par "T")
-                seq_finder.convert_rna_to_dna(row)
-                
-                # Signal de progression
-                progress = int((step / total_steps) * 100)
-                self.progress_signal.emit(progress)
-
-            # Sauvegarde du fichier converti
-            output_path = os.path.join(self.output_directory, self.output_name)
-            seq_finder.__data_prot.to_csv(output_path, sep="\t", index=False)
-
-        except Exception as e:
-            print(f"An error occurred: {str(e)}")
-            self.progress_signal.emit(100)  # Remet la progression à 100% en cas d'erreur
