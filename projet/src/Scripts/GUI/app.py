@@ -17,10 +17,10 @@ from ..GLOBAL import *
 import sys
 import pandas as pd
 import pyensembl as pb
+import csv
 
 from ..Back.distances import *
 from .CSV_Viewer import CSVViewer
-from .Error_window import SimpleWindow
 
 def load_stylesheet(file_path):
     with open(file_path, "r") as file:
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
         self.file_path = None
         self.prot_file = None
         self.genomic_file = None
+        self.output_file = None
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
 
@@ -79,6 +80,12 @@ class MainWindow(QMainWindow):
         button_load_data.triggered.connect(self.open_file_dialog)
         toolbar.addAction(button_load_data)
 
+        # bouton pour charger un output
+        button_load_output = QAction(QIcon(f"{ICON_PATH}document-excel-table.png"), "Load output", self)
+        button_load_output.setStatusTip("Load output from a CSV table")
+        button_load_output.triggered.connect(self.open_output_dialog)
+        toolbar.addAction(button_load_output)
+
         # bouton pour quitter l'application
         button_quit = QAction(QIcon(f"{ICON_PATH}door-open-out.png"), "Quit", self)
         button_quit.setStatusTip("Close application")
@@ -119,6 +126,7 @@ class MainWindow(QMainWindow):
         # menu File de la barre de tâches
         file_menu = menu.addMenu("File")
         file_menu.addAction(button_load_data)
+        file_menu.addAction(button_load_output)
         file_menu.addAction(button_quit)
         # Menu Action de la barre de tâches
         action_menu = menu.addMenu("Actions")
@@ -128,10 +136,15 @@ class MainWindow(QMainWindow):
     def onManualDistances(self, reference_file=None, genomic_file=None):
         dialog = ManualDistancesWindow(reference_file, genomic_file)
         dialog.data_signal.connect(self.update_files)  # Connecter le signal au slot
+        dialog.name_signal.connect(self.update_file_names)  # Connecter le signal des noms au slot
         dialog.exec()
 
     def update_files(self, files):
         self.prot_file, self.genomic_file = files
+        self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
+
+    def update_file_names(self, names):
+        self.prot_file_name, self.genomic_file_name = names
         self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
 
     def open_file_dialog(self):
@@ -140,31 +153,69 @@ class MainWindow(QMainWindow):
             self.file_path = file_path
             self.file_loader()
 
+    def open_output_dialog(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "File Explorer", "", "CSV Files (*.csv)")
+        if file_path:
+            self.file_path_output = file_path
+            self.file_loader_output()
+
     def save_file_dialog(self):
         file_name, _ = QFileDialog.getSaveFileName(self, "File Explorer", "", "All Files (*);;CSV Files (*.csv)")
         if file_name:
             self.file_name = file_name
 
+    def file_loader_output(self):
+        if self.file_path_output:
+            if self.output_file is not None:
+                show_alert("Error", "A genomic file has already been loaded \n Please delete it before loading another file")
+            else:
+                sep=self.detect_separator(self.file_path_output)
+                index_column=self.index_column_detector(self.file_path_output, sep)
+                self.output_file = pd.read_csv(self.file_path_output, sep=sep, index_col=index_column)
+                self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
+                self.output_name = os.path.basename(self.file_path_output)
+
+    def index_column_detector(self, file_path, sep):
+        file = pd.read_csv(file_path, sep=sep, nrows=10)
+        if file.columns[0] == "" or 'Unnamed: 0' in file.columns[0]:
+            return 0
+        else:
+            return None
+        
+
+    def index_column_detector_excel(self, file_path):
+        file = pd.read_excel(file_path, nrows=10)
+        if file.columns[0] == "" or 'Unnamed: 0' in file.columns[0]:
+            return 0
+        else:
+            return None
+
+
     def file_loader(self):
         if self.file_path:
             if self.file_path.endswith(".csv"):
-                file_object = pd.read_csv(self.file_path, sep=self.detect_separator(self.file_path), index_col=0)
+                sep=self.detect_separator(self.file_path)
+                index_column=self.index_column_detector(self.file_path, sep)
+                file_object = pd.read_csv(self.file_path, sep=sep, index_col=index_column)
             elif self.file_path.endswith(".tsv"):
                 file_object = pd.read_csv(self.file_path, sep="\t")
             elif self.file_path.endswith(".xlsx"):
-                file_object = pd.read_excel(self.file_path, index_col=0)
+                index_column = self.index_column_detector_excel(self.file_path)
+                file_object = pd.read_excel(self.file_path, index_col=index_column)
             verification_column = 'GeneID'
-            if verification_column == file_object.columns[0]: #TODO vérification sur le type de fichier pour pas ouvrir n'importe quoi, et faire un tri également sur les colonnes du fichier génomique
+            if verification_column == file_object.columns[0]:
                 if self.genomic_file is not None:
-                    self.error_window("A genomic file has already been loaded\n Please delete it before loading another file") 
+                    show_alert("Error", "A genomic file has already been loaded \n Please delete it before loading another file")
                 else:
                     self.genomic_file = file_object
+                    self.genomic_file_name = os.path.basename(self.file_path)
                     self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
             else:
                 if self.prot_file is not None:
-                    self.error_window("A reference file has already been loaded \n Please delete it before loading another file")
+                    show_alert("Error", "A reference file has already been loaded \n Please delete it before loading another file")
                 else:
                     self.prot_file = file_object
+                    self.prot_file_name = os.path.basename(self.file_path)
                     self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
 
     def close_file_custom(self, variable_name: str):
@@ -178,12 +229,11 @@ class MainWindow(QMainWindow):
         """
         with open(file_path, 'r') as file:
             # Read the first line of the file
-            first_line = file.readline()
+            sample = file.read(1024)
             # Try different separators
-            separators = [',', ';', '\t', ' ']
-            for sep in separators:
-                if sep in first_line:
-                    return sep
+            sniffer = csv.Sniffer()
+            sep = sniffer.sniff(sample).delimiter
+            return sep
         return ','  # Default to comma if no separator is found
     
     def onCalculateDistances(self, splice_type, reference_file, genomic_file):
@@ -195,7 +245,7 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     def dynamic_menues(self, toolbar):
-        if self.prot_file is not None and self.findChild(QMenu, "Fichier protéine") is None: #TODO n'arrive pas à lire les fichiers pour FMRP
+        if self.prot_file is not None and self.findChild(QMenu, "Fichier protéine") is None: 
             tool_button = QToolButton(self)
             tool_button.setText("reference file  ")
             tool_button.setObjectName("toolButtonProtein")
@@ -206,7 +256,7 @@ class MainWindow(QMainWindow):
             menu_protein.setObjectName("Fichier protéine")
             view_protein_button = QAction("View file", self)
             view_protein_button.setStatusTip("View file button")
-            view_protein_button.triggered.connect(lambda: self.csv_viewer(self.prot_file))
+            view_protein_button.triggered.connect(lambda: self.csv_viewer(self.prot_file, self.prot_file_name))
             menu_protein.addAction(view_protein_button)
 
             # Ajouter des actions au menu
@@ -232,7 +282,7 @@ class MainWindow(QMainWindow):
             menu_genomic.setObjectName("Fichier génomique")
             view_genomic_button = QAction("View file", self)
             view_genomic_button.setStatusTip("View file button")
-            view_genomic_button.triggered.connect(lambda: self.csv_viewer(self.genomic_file))
+            view_genomic_button.triggered.connect(lambda: self.csv_viewer(self.genomic_file, self.genomic_file_name))
             menu_genomic.addAction(view_genomic_button)
 
             # Ajouter des actions au menu
@@ -247,19 +297,47 @@ class MainWindow(QMainWindow):
             # Ajouter le QToolButton à la barre d'outils
             toolbar.addWidget(tool_button_genomic)
 
+        if self.output_file is not None and self.findChild(QMenu, "output") is None: 
+            tool_button_output = QToolButton(self)
+            tool_button_output.setText("output file  ")
+            tool_button_output.setObjectName("toolButtonOutput")
+            tool_button_output.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # Le menu apparaît immédiatement
+
+            # Créer un menu pour le QToolButton
+            menu_output = QMenu("output", self)
+            menu_output.setObjectName("output")
+            view_output_button = QAction("View file", self)
+            view_output_button.setStatusTip("View file button")
+            view_output_button.triggered.connect(lambda: self.csv_viewer(self.output_file, self.output_name))
+            menu_output.addAction(view_output_button)
+
+            # Ajouter des actions au menu
+            delete_output = QAction("delete", self)
+            delete_output.setStatusTip("delete")
+            delete_output.triggered.connect(lambda: self.close_file_custom("output_file"))
+            menu_output.addAction(delete_output)
+
+            # Associer le menu au QToolButton
+            tool_button_output.setMenu(menu_output)
+
+            # Ajouter le QToolButton à la barre d'outils
+            toolbar.addWidget(tool_button_output)
+
         elif self.genomic_file is None and self.findChild(QMenu, "Fichier génomique") != None:
+            self.findChild(QMenu, "Fichier génomique").deleteLater()
             self.findChild(QToolButton, "toolButtonGenomic").deleteLater()
         
         elif self.prot_file is None and self.findChild(QMenu, "Fichier protéine") != None:
+            self.findChild(QMenu, "Fichier protéine").deleteLater()
             self.findChild(QToolButton, "toolButtonProtein").deleteLater()
 
-    def csv_viewer(self, file_name):
-        self.viewer = CSVViewer(file_name)
+        elif self.output_file is None and self.findChild(QMenu, "output") != None:
+            self.findChild(QMenu, "output").deleteLater()
+            self.findChild(QToolButton, "toolButtonOutput").deleteLater()
+
+    def csv_viewer(self, file, file_name="CSV Viewer"):
+        self.viewer = CSVViewer(file, file_name)
         self.viewer.show()
-    
-    def error_window(self, message):
-        self.error = SimpleWindow(message)
-        self.error.show()
 
 
 if __name__ == "__main__":

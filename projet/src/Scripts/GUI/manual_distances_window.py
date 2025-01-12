@@ -11,6 +11,7 @@ from .app_utils import load_stylesheet, show_alert
 import os
 import pandas as pd
 import traceback
+import csv
 
 from ..Back.distances_utils import FilterDataProt
 from ..Back.DistanceWorker import DistancesWorker, ParallelDistancesWorker
@@ -19,11 +20,12 @@ from ..GLOBAL import *
 
 class ManualDistancesWindow(QDialog):
     data_signal = pyqtSignal(list)
+    name_signal = pyqtSignal(list)
     def __init__(self, reference_file, genomic_file):
         super().__init__()
         self.setWindowTitle("Manual Calculation")
         self.resize(WINDOW_HEIGHT // 2, WINDOW_WIDTH // 2)
-        self.df_ref, self.df_second = None, None
+        self.df_ref, self.df_second = reference_file, genomic_file
         self.file_dict = {"reference": None, "second": None}
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
 
@@ -53,8 +55,7 @@ class ManualDistancesWindow(QDialog):
         # Bouton de validation
         self.validate_button = QPushButton("Validate")
         self.validate_button.clicked.connect(self.validate_files)
-        if self.df_ref is not None and self.df_second is not None:
-            self.validate_button.clicked.connect(lambda: self.send_files(self.df_ref, self.df_second))
+        self.validate_button.clicked.connect(lambda: self.send_files(self.df_ref, self.df_second))
 
         self.main_layout.addWidget(self.validate_button)
 
@@ -78,18 +79,6 @@ class ManualDistancesWindow(QDialog):
         file1_layout.addWidget(self.button_1)
         ref_layout.addLayout(file1_layout)
 
-        # Label + combo pour séparateur
-        self.first_separator_label = QLabel("Please select the separator used in the file")
-        self.first_separator_label.setVisible(False)
-        self.first_separator_combo = QComboBox()
-        self.first_separator_combo.addItem("Comma | ,")
-        self.first_separator_combo.addItem("Semicolon | ;")
-        self.first_separator_combo.addItem("Tabulation | \\t")
-        self.first_separator_combo.addItem("Space |  ")
-        self.first_separator_combo.setVisible(False)
-        ref_layout.addWidget(self.first_separator_label)
-        ref_layout.addWidget(self.first_separator_combo)
-
         self.main_layout.addWidget(group_ref)
 
     def create_second_file_section(self):
@@ -107,17 +96,6 @@ class ManualDistancesWindow(QDialog):
         file2_layout.addWidget(self.second_file_path)
         file2_layout.addWidget(self.button_2)
         second_layout.addLayout(file2_layout)
-
-        self.second_separator_label = QLabel("Please select the separator used in the file")
-        self.second_separator_label.setVisible(False)
-        self.second_separator_combo = QComboBox()
-        self.second_separator_combo.addItem("Comma | ,")
-        self.second_separator_combo.addItem("Semicolon | ;")
-        self.second_separator_combo.addItem("Tabulation | \\t")
-        self.second_separator_combo.addItem("Space |  ")
-        self.second_separator_combo.setVisible(False)
-        second_layout.addWidget(self.second_separator_label)
-        second_layout.addWidget(self.second_separator_combo)
 
         self.main_layout.addWidget(group_second)
 
@@ -164,47 +142,52 @@ class ManualDistancesWindow(QDialog):
         if file_path:
             label.setText(f"Selected file : {os.path.basename(file_path)}")
             if file_number == 1: # récupère le premier fichier de référence
-                if file_path.endswith(".csv"):
-                    self.first_separator_label.setVisible(True)
-                    self.first_separator_combo.setVisible(True)
                 self.file_dict["reference"] = file_path
             elif file_number == 2: # deuxième fichier contenant les distances
-                if file_path.endswith(".csv"):
-                    self.second_separator_label.setVisible(True)
-                    self.second_separator_combo.setVisible(True)
                 self.file_dict["second"] = file_path
 
     def validate_files(self):
         """
         Method to validate the selected files and proceed to the pairwise selection for distance computation.
         """
-        if not self.file_dict["reference"] or not self.file_dict["second"]:
-            show_alert("Error", "Both files must be selected.")
-            return
-        try:
-            if self.file_dict["reference"].endswith(".csv"):
-                self.df_ref = pd.read_csv(self.file_dict["reference"], sep=self.first_separator_combo.currentText().split(" | ")[1], engine = "python")
-            if self.file_dict["second"].endswith(".csv"):
-                self.df_second = pd.read_csv(self.file_dict["second"], sep=self.second_separator_combo.currentText().split(" | ")[1], engine = "python")
-            if self.file_dict["reference"].endswith(".tsv"):
-                self.df_ref = pd.read_csv(self.file_dict["reference"], sep="\t", engine = "python")
-            if self.file_dict["second"].endswith(".tsv"):
-                self.df_second = pd.read_csv(self.file_dict["second"], sep="\t", engine = "python")
-            if self.file_dict["reference"].endswith(".xlsx"):
-                self.df_ref = pd.read_excel(self.file_dict["reference"])
-            if self.file_dict["second"].endswith(".xlsx"):
-                self.df_second = pd.read_excel(self.file_dict["second"])
-            self.validate_button.setVisible(False)
+        if self.df_ref is None or self.df_second is None:
+            if not self.file_dict["reference"] and not self.file_dict["second"]:
+                show_alert("Error", "Both files must be selected.")
+                return
+            try:
+                if self.file_dict["reference"].endswith(".csv"):
+                    sep = self.detect_separator(self.file_dict["reference"])
+                    index = self.index_column_detector(self.file_dict["reference"], sep)
+                    self.df_ref = pd.read_csv(self.file_dict["reference"], sep=sep, index_col=index, engine = "python")
+                if self.file_dict["second"].endswith(".csv"):
+                    sep = self.detect_separator(self.file_dict["second"])
+                    index = self.index_column_detector(self.file_dict["second"], sep)
+                    self.df_second = pd.read_csv(self.file_dict["second"], sep=sep, index_col=index,engine = "python")
+                if self.file_dict["reference"].endswith(".tsv"):
+                    self.df_ref = pd.read_csv(self.file_dict["reference"], sep="\t", engine = "python")
+                if self.file_dict["second"].endswith(".tsv"):
+                    self.df_second = pd.read_csv(self.file_dict["second"], sep="\t", engine = "python")
+                if self.file_dict["reference"].endswith(".xlsx"):
+                    index = self.index_column_detector_excel(self.file_dict["reference"])
+                    self.df_ref = pd.read_excel(self.file_dict["reference"], index_col=index)
+                if self.file_dict["second"].endswith(".xlsx"):
+                    index = self.index_column_detector_excel(self.file_dict["second"])
+                    self.df_second = pd.read_excel(self.file_dict["second"], index_col=index)
+                self.validate_button.setVisible(False)
+                self.show_column_selection()
+            except Exception as e:
+                show_alert("Error", f"Failed to read files: {e}")
+                return
+        else:
             self.show_column_selection()
-        except Exception as e:
-            show_alert("Error", f"Failed to read files: {e}")
-            return
         
 
 
     def send_files(self, first_file, second_file):
         files = [first_file, second_file]
+        names = [os.path.basename(self.file_dict["reference"]), os.path.basename(self.file_dict["second"])]
         self.data_signal.emit(files)
+        self.name_signal.emit(names)
         
     def addThreadsSelection(self):
         """
@@ -438,6 +421,34 @@ class ManualDistancesWindow(QDialog):
             self.group_progress.deleteLater()
             self.group_progress = None
             show_alert("Info", "Calculation finished")
+    
+    def detect_separator(self, file_path):
+        """
+        Detect the separator used in a CSV file.
+        """
+        with open(file_path, 'r') as file:
+            # Read the first line of the file
+            sample = file.read(1024)
+            # Try different separators
+            sniffer = csv.Sniffer()
+            sep = sniffer.sniff(sample).delimiter
+            return sep
+        return ','
+    
+    def index_column_detector(self, file_path, sep):
+        file = pd.read_csv(file_path, sep=sep, nrows=10)
+        if file.columns[0] == "" or 'Unnamed: 0' in file.columns[0]:
+            return 0
+        else:
+            return None
+        
+
+    def index_column_detector_excel(self, file_path):
+        file = pd.read_excel(file_path, nrows=10)
+        if file.columns[0] == "" or 'Unnamed: 0' in file.columns[0]:
+            return 0
+        else:
+            return None
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

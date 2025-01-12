@@ -1,18 +1,32 @@
 from ..GLOBAL import ICON_PATH
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QMenu
-from PyQt6.QtGui import QIcon, QAction
-from PyQt6.QtCore import Qt, QPoint
-import pyensembl as pb
-from .app_utils import show_alert
-from ..Back.DrawGene import GeneImage
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem
+from PyQt6.QtGui import QIcon
 
+from PyQt6.QtWidgets import (
+    QMainWindow, QVBoxLayout, QWidget, QPushButton,
+    QToolBar, QStatusBar, QMenu, QSpacerItem, QSizePolicy,
+    QFileDialog, QToolButton, QTableWidgetItem, QTableWidget, 
+)
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtCore import Qt, QSize, QPoint
+
+from .manual_distances_window import ManualDistancesWindow
+from .splicing_distances_window import SplicingDistancesWindow
+from .all_splicing_distances_window import AllSplicingDistancesWindow
+from .app_utils import show_alert, load_stylesheet
+
+from ..Back.DrawGene import GeneImage
+from ..GLOBAL import *
+
+import pandas as pd
+import pyensembl as pb
 
 class CSVViewer(QWidget):
-    def __init__(self, file_object):
+    def __init__(self, file_object, file_name):
         super().__init__()
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
-        self.setWindowTitle("CSV Viewer")
+        self.setWindowTitle(file_name)
         self.setGeometry(100, 100, 800, 600)
 
         layout = QVBoxLayout(self)
@@ -21,8 +35,6 @@ class CSVViewer(QWidget):
 
         data = file_object.values.tolist()
         headers = file_object.columns.tolist()
-        if headers[0] == "Unnamed: 0":
-            headers = headers[1:]
 
         # Remplir la table avec les données du CSV
         self.tableWidget.setRowCount(len(data))
@@ -32,6 +44,7 @@ class CSVViewer(QWidget):
         for rowIdx, row in enumerate(data):
             for colIdx, cell in enumerate(row):
                 self.tableWidget.setItem(rowIdx, colIdx, QTableWidgetItem(str(cell))) 
+        
         self.tableWidget.resizeColumnsToContents()  # Adapter la taille des colonnes au contenu
         # -- AJOUT : autoriser le menu contextuel personnalisé --
         self.tableWidget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -99,5 +112,3 @@ class CSVViewer(QWidget):
         except Exception as e:
             show_alert("Error", f"An error occured: {e}")
             return
-        
-        
