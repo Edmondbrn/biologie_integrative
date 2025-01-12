@@ -8,8 +8,8 @@ from src.Scripts.Back.DrawGene import GeneImage
 @pytest.fixture
 def example_exon_pos():
     return [
-        [97543299, 97544702], [97547885, 97548026], [97564044, 97564188],
-        [97658624, 97658804], [97700407, 97700550], [97770814, 97770934]
+        (97543299, 97544702), (97547885, 97548026), (97564044, 97564188),
+        (97658624, 97658804), (97700407, 97700550), (97770814, 97770934)
     ]
 
 @pytest.fixture
@@ -19,8 +19,8 @@ def example_marker_pos():
 @pytest.fixture
 def example_exon_pos_false():
     return [
-        ["qd", 97544702], ["szef", 97548026], [97564044, 97564188],
-        [97658624, 97658804], [97700407, "sedf"], [97770814, 97770934]
+        ("qd", 97544702), ("szef", 97548026), (97564044, 97564188),
+        (97658624, 97658804), (97700407, "sedf"), (97770814, 97770934)
     ]
 
 
@@ -70,6 +70,7 @@ def test_geneimage_border_arguments(example_exon_pos, example_marker_pos):
     assert gene2.barColorXmin > gene2.barColorXmax
     # vérifcation visuelle
     assert gene2.show() == None
+
 
 def test_geneimage_incorrect_border_arguments(example_exon_pos, example_marker_pos):
     """

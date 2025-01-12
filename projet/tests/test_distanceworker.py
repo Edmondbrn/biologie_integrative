@@ -127,7 +127,7 @@ def test_distances_worker(
 ):
     """
     Test unitaire de la classe DistancesWorker.
-    Vérifie notamment :
+    Vérifie  :
     - Que la progression est signalée via progress_changed
     - Que le signal finished_signal est émis
     - Que les fichiers CSV sont bien créés
@@ -140,9 +140,11 @@ def test_distances_worker(
         df_second=df_second,
         comparison_couples=comparison_couples,
         output_dir=output_dir,
-        bdd=mock_bdd,
+        release = 102,
+        species = "mus_musculus",
         file_basename="test_distances"
     )
+    worker.bdd = mock_bdd  # On remplace l'objet EnsemblRelease par le mock
 
     # On utilise QSignalSpy pour observer les signaux
     progress_spy = QSignalSpy(worker.progress_changed)
@@ -164,10 +166,9 @@ def test_distances_worker(
     assert os.path.exists(dna_file), "Le fichier DNA n'a pas été créé."
     assert os.path.exists(rna_file), "Le fichier RNA n'a pas été créé."
 
-    # Optionnel : On peut lire le contenu des CSV et vérifier par exemple la présence de certaines colonnes
+    # On lit le contenu des CSV et vérifier par exemple la présence de certaines colonnes
     df_dna = pd.read_csv(dna_file, sep="\t")
     df_rna = pd.read_csv(rna_file, sep="\t")
 
     assert "transcript_ID" in df_dna.columns, "La colonne 'transcript_ID' est manquante dans le CSV DNA."
     assert "transcript_ID" in df_rna.columns, "La colonne 'transcript_ID' est manquante dans le CSV RNA."
-    # etc. (adapter selon vos besoins)

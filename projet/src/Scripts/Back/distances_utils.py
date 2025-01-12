@@ -13,9 +13,9 @@ ERROR_DICT = {4 : "Error while converting dna to rna",
 
 def FilterDataProt(df_prot : pd.DataFrame) -> pd.DataFrame:
     # enleve les lignes avec des str sur la colonne start_genomic
+    if not isinstance(df_prot, pd.DataFrame):
+        raise TypeError("The input must be a DataFrame")
     try:
-        if not isinstance(df_prot, pd.DataFrame):
-            raise TypeError("The input must be a DataFrame")
         df_prot = df_prot.loc[df_prot["start_genomic"].apply(lambda x: str(x).isnumeric())]
         return df_prot
     except Exception as e:
@@ -31,7 +31,7 @@ def fill_rna_row(rna_indices : dict, dist_array : int, flag : bool, err_message 
     for index, (i, col_name) in enumerate(rna_indices.items()):
         if err_message[index] != 0:
             # Remplacer la valeur par le message d’erreur ou un code
-            row_rna[col_name] = f"ERROR_{ERROR_DICT[err_message[index]]}"
+            row_rna[col_name] = f"ERROR_{ERROR_DICT.get(err_message[index], 'mock')}"
         elif flag[i]:
             # Ajouter un astérisque
             row_rna[col_name] = f"{dist_array[i]}*"
@@ -144,6 +144,8 @@ def convert_dna_to_rna( prot_coordinate: int,
     
     has_star = True si on détecte un site dans un intron.
     """
+    if not isinstance(prot_coordinate, int) or not isinstance(splice_coordinate, int) or not isinstance(dna_distance, int):
+        raise TypeError("All inputs must be integers")
     for exon in exon_pos_list:
         if not isinstance(exon, tuple) or len(exon) != 2:
             raise ValueError("Each element of the list must be a tuple of 2 elements")

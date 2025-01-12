@@ -152,9 +152,12 @@ def test_distances_worker_all(
         input_df=input_df,
         comparison_couples=comparison_couples,
         output_dir=output_dir,
-        bdd=mock_bdd,
+        release = 102,
+        species = "mus_musculus",
         file_basename="test_distances"
     )
+
+    worker.bdd = mock_bdd  # On remplace la vraie base par le mock
 
     # On utilise QSignalSpy pour observer les signaux
     progress_spy = QSignalSpy(worker.progress_changed)
@@ -183,9 +186,7 @@ def test_distances_worker_all(
         print(outpath)
         assert os.path.exists(outpath), f"Le fichier de sortie {fname} n'a pas été créé."
 
-    # Optionnel : On peut charger les fichiers CSV et vérifier leur contenu
-    # pour s'assurer qu'on y trouve les colonnes attendues ou la bonne taille.
-    # Exemple sommaire :
+    # On charge les fichiers CSV et vérifier leur contenu
+    # pour s'assurer qu'on y trouve les colonnes attendues ou la bonne taille.:
     dna_splice1 = pd.read_csv(os.path.join(output_dir, "dna_splice1_test_distances.csv"), sep="\t")
     assert "transcript_ID" in dna_splice1.columns, "Colonne 'transcript_ID' manquante dans dna_splice1"
-    # etc. (adapter selon vos besoins)

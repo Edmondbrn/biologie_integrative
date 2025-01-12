@@ -5,7 +5,6 @@ import pandas as pd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
 import src.Scripts.Back.distances_utils as du
-from numba import njit
 import numpy as np
 
 
@@ -51,6 +50,7 @@ def test_filterdataprot(get_dataframe):
     """
     df : pd.DataFrame = get_dataframe
     df_filtered = du.FilterDataProt(df)
+    # vérifie si la sortie est un dataframe
     assert isinstance(df_filtered, pd.DataFrame)
     assert df_filtered.shape[0] <= df.shape[0]
 
@@ -66,7 +66,9 @@ def test_get_intron_coord(get_exon_list):
     exon_list = get_exon_list
     intron_list = du.get_intron_coord(exon_list)
     print(intron_list)
+    # vérification si la sortie est une liste
     assert isinstance(intron_list, list)
+    # vérification si la longueur de la liste est correcte (introns = exons - 1)
     assert len(intron_list) == len(exon_list) - 1
 
     # test si on ne lui donne pas une liste en entrée
@@ -87,7 +89,9 @@ def test_get_intron_length(get_exon_list):
     intron_length = du.get_intron_length(intron_list[0][0], intron_list[0][1])
     print(f"Results : {intron_length}")
     print(f"Expected : {intron_list[0][1] - intron_list[0][0]}")
+    # vérification si la sortie est un int
     assert isinstance(intron_length, int)
+    # vérification si la longueur de l'intron est correcte
     assert intron_length == intron_list[0][1] - intron_list[0][0]
 
     # test si on ne lui donne pas de int en entrée
