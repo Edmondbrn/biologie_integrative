@@ -22,6 +22,8 @@ from ..Back.distances import *
 from .CSV_Viewer import CSVViewer
 from .Error_window import SimpleWindow
 
+from .RNAtoDNA import RNAtoDNAWindow
+
 def load_stylesheet(file_path):
     with open(file_path, "r") as file:
         return file.read()
@@ -88,7 +90,7 @@ class MainWindow(QMainWindow):
         # Bouton pour convertir des coordonnées ARNm en coordonnées génomiques
         button_convert = QAction(QIcon(f"{ICON_PATH}arrow-circle.png"), "Convert mRNA to DNA", self)
         button_convert.setStatusTip("Convert RNA coordinates to genomic coordinates")
-        button_convert.triggered.connect(lambda: self.onMyToolBarButtonClick("test pression bouton"))
+        button_convert.triggered.connect(lambda: self.onRNAtoDNA())
 
  
         # ============================ définition des sous menus ===============================
@@ -260,6 +262,15 @@ class MainWindow(QMainWindow):
     def error_window(self, message):
         self.error = SimpleWindow(message)
         self.error.show()
+    
+    def onRNAtoDNA(self):
+        """
+        Cette méthode est appelée lorsque l'on clique sur le bouton dans la barre d'outils.
+        Elle ouvrira la fenêtre RNAtoDNAWindow pour convertir les coordonnées mRNA en coordonnées génomiques.
+        """
+        # Créez l'instance de la fenêtre RNAtoDNAWindow
+        window = RNAtoDNAWindow()
+        window.exec()  # Affichez la fenêtre
 
 
 if __name__ == "__main__":
