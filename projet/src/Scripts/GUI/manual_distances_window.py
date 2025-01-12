@@ -23,6 +23,7 @@ class ManualDistancesWindow(QDialog):
         super().__init__()
         self.setWindowTitle("Manual Calculation")
         self.resize(WINDOW_HEIGHT // 2, WINDOW_WIDTH // 2)
+        self.setStyleSheet(load_stylesheet(QSS_PATH))
         self.df_ref, self.df_second = None, None
         self.file_dict = {"reference": None, "second": None}
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
@@ -52,11 +53,19 @@ class ManualDistancesWindow(QDialog):
         # ====================== SECTION BOUTON VALIDATION =======================
         # Bouton de validation
         self.validate_button = QPushButton("Validate")
+        self.validate_button.setObjectName("validate_button")
         self.validate_button.clicked.connect(self.validate_files)
         if self.df_ref is not None and self.df_second is not None:
             self.validate_button.clicked.connect(lambda: self.send_files(self.df_ref, self.df_second))
 
         self.main_layout.addWidget(self.validate_button)
+
+        self.bar = QProgressBar()
+        self.bar.setValue(50)
+        self.bar.setFixedWidth(300)
+        self.bar.setFormat("%p%")
+        self.first_update = True
+        self.main_layout.addWidget(self.bar)
 
         self.setLayout(self.main_layout)
 

@@ -1,5 +1,41 @@
+QMainWindow {
+    background-color: #dddada;
+    color : black;
+}
+
+QDialog {
+    background-color: #dddada;
+    color : black;
+}
+
+QPushButton {
+    border-radius: 10px;  /* Utilisez border-radius pour arrondir les coins */
+    background-color: #4e4747;
+    color: white;  /* Ajoutez une couleur de texte pour plus de visibilité */
+    padding: 5px;  /* Ajoutez du padding pour agrandir les boutons */
+    border-color: #a5a3a3;
+    border-width: 1px;
+    margin : 5px;
+    border-style: solid;
+}
+
+QPushButton:hover{
+    background-color: rgba(66, 242, 255, 0.596);
+}
+
+QPushButton#validate_button {
+    background-color: #267b8a;
+    padding: 10px;
+}
+
+QPushButton#validate_button:hover {
+    background-color: rgba(66, 242, 255, 0.596) ;
+}
+
+
 QPushButton#logo {
     border: none;
+    background-color: none;
 }
 
 QCheckBox {
@@ -10,3 +46,14 @@ QCheckBox::indicator:hover {
     border: 2px solid lightblue;
 }
 
+QProgressBar {
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #333;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: #267b8a; /* Couleur de la barre de progression */
+    width: 20px;
+}
