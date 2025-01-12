@@ -154,10 +154,10 @@ class ParallelDistancesWorker(QThread):
         self.finished_signal.emit()
 
 if __name__ == "__main__":
-    df_ref = pd.read_csv(".\src\\Ressources\\data\\data_filteredfinal.tsv", sep = "\t")
-    df_second = pd.read_csv(".\src\\Ressources\\filteredRmats\A5SS_+.csv")
+    df_ref = pd.read_csv("./src/Ressources/data/data_filteredfinal.tsv", sep = "\t")
+    df_second = pd.read_csv("./src/Ressources/filteredRmats/A5SS_+.csv", sep = "\t")
     comparison_couples = [("start_genomic", "shortSplice"), ("end_genomic", "longSplice")]
-    output_dir = ".\src\\Ressources\\output_calcul"
+    output_dir = "./src/Ressources/output_calcul"
     release = 102
     species = "mus_musculus"
     dist = DistancesWorker(df_ref= df_ref,
@@ -166,4 +166,4 @@ if __name__ == "__main__":
                            output_dir= output_dir,
                            release= release,
                            species= species)
-    dist.start()
+    dist.run()
