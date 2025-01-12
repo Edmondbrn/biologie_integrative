@@ -70,7 +70,7 @@ class ManualDistancesWindow(QDialog):
         self.setLayout(self.main_layout)
 
     def create_reference_file_section(self):
-        group_ref = QGroupBox("Reference file")
+        group_ref = QGroupBox()
         ref_layout = QVBoxLayout(group_ref)
 
         # Instruction
@@ -102,7 +102,7 @@ class ManualDistancesWindow(QDialog):
         self.main_layout.addWidget(group_ref)
 
     def create_second_file_section(self):
-        group_second = QGroupBox("Second file")
+        group_second = QGroupBox()
         second_layout = QVBoxLayout(group_second)
 
         self.label_instruction_2 = QLabel("Please select the second file to proceed")
@@ -131,7 +131,7 @@ class ManualDistancesWindow(QDialog):
         self.main_layout.addWidget(group_second)
 
     def create_output_section(self):
-        group_output = QGroupBox("Output")
+        group_output = QGroupBox()
         third_layout = QVBoxLayout(group_output)
         self.label_instruction_3 = QLabel("Please select the output directory")
         self.label_instruction_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -293,7 +293,7 @@ class ManualDistancesWindow(QDialog):
         self.first_update = True
         
         # Créer un sous-layout horizontal pour centrer la barre
-        self.group_progress = QGroupBox("Progress")
+        self.group_progress = QGroupBox()
         self.progress_layout = QVBoxLayout(self.group_progress)
         hbox = QHBoxLayout()
         hbox.addStretch(1)
@@ -309,7 +309,7 @@ class ManualDistancesWindow(QDialog):
         """
         self.compare_pairs = []  # Liste pour stocker les paires de colonnes
 
-        self.group_compare = QGroupBox("Column comparison")
+        self.group_compare = QGroupBox()
         self.group_layout = QVBoxLayout(self.group_compare)
         # ====================== Section for the multithreading layout  =======================
         self.addThreadsSelection()
