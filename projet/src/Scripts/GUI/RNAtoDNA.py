@@ -132,9 +132,6 @@ class RNAtoDNAWindow(QDialog):
             # Initialiser l'objet SequenceFinder
             seq_finder = SequenceFinder(data_prot=df_rna)
 
-            # Ajout de la barre de progression avant de démarrer
-            self.addProgressBar()
-
             # Lancer la conversion avec `start()`
             seq_finder.start()  # Commence la conversion
 
@@ -145,36 +142,3 @@ class RNAtoDNAWindow(QDialog):
             show_alert("Info", f"RNA has been successfully converted to DNA.\nOutput saved at: {output_path}")
         except Exception as e:
             show_alert("Error", f"An error occurred during conversion: {str(e)}")
-
-    def addProgressBar(self):
-        # Crée la barre de progression
-        self.progress = QProgressBar()
-        self.progress.setRange(0, len(FilterDataProt(self.df_ref)))
-        self.progress.setFixedWidth(300)  # Largeur fixe
-        self.progress.setFormat("%p%")
-        self.first_update = True
-        
-        # Créer un sous-layout horizontal pour centrer la barre
-        self.group_progress = QGroupBox("Progress")
-        self.progress_layout = QVBoxLayout(self.group_progress)
-        hbox = QHBoxLayout()
-        hbox.addStretch(1)
-        hbox.addWidget(self.progress, alignment=Qt.AlignmentFlag.AlignCenter)
-        hbox.addStretch(1)
-        self.progress_layout.addLayout(hbox)
-
-        self.layout().addWidget(self.group_progress)
-
-    def updateParallelProgressBar(self, rows_done: int):
-        current_value = self.progress.value()
-        self.progress.setValue(current_value + rows_done)
-
-    def updateProgressBar(self, value):
-        """
-        Method which is solicited when an update emit is emitted by the worker.
-        """
-        if self.progress:
-            if self.first_update:
-                self.first_update = False
-                self.progress.setFormat("%p%")
-            self.progress.setValue(value)
