@@ -288,7 +288,6 @@ class ManualDistancesWindow(QDialog):
         # Crée la barre de progression
         self.progress = QProgressBar()
         self.progress.setRange(0, len(FilterDataProt(self.df_ref)))
-        self.progress.setFixedWidth(300)  # Largeur fixe
         self.progress.setFormat("%p%")
         self.first_update = True
         
