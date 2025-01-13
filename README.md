@@ -92,7 +92,7 @@ This feature is destined to convert NCBI transcript identifiers into Ensembl ide
 
 - Parsing Rmats
 
-Inside the `Actions` menu, you can click on the `Parsing Rmats`submenu. It will ask you the location of the directory where the Rmats files are stored. <ins> Beware that the programm doesn't support any other separator than (\t) for this particular function and will crash </ins>. An information window will tell you when the conversion is finished (almost instantly)
+Inside the `Actions` menu, you can click on the `Parsing Rmats`submenu. It will ask you the location of the directory where the Rmats files are stored. **Beware that the programm doesn't support any other separator than (\t) for this particular function and will crash**. An information window will tell you when the conversion is finished (almost instantly)
 
 - Convert mRNA to DNA
 
@@ -141,14 +141,14 @@ Some elements will be added to the window. Now you can select the columns to com
 
 **Please note that you have to specify a column with __only__ numeric values. Remove strings or ambiguous values. Otherwise, you will have an error message.**
 
-You can add all the combinaison you want, but not twice the same (Warning message if this case). If you have done a mistake, you can remove the last added combinaison with the red button. Finally you can launch the computation with the `Compare` button. A progress bar will be displayed to warn you about the calculation progress. A little moment can occured before the starting of calculation because of compilation of some functions. You can now check your results files !
+You can add all the combinaison you want, but not twice the same (Warning message if this case). If you have done a mistake, you can remove the last combinaison with the `remove comparison` button in red. Finally you can launch the computation with the `Compare` button. A progress bar will be displayed to inform you about the calculation progress. A little moment can occured before the starting of calculation because of compilation of some functions. You can now check your results files !
 
-**Note that the calculations can be parallelised by activating the multiprocessing. A spinbox will appear to ask you how many processes you want. This is highly not recommended on the .exe version.**
+**Note that the calculations can be parallelised by activating the multiprocessing. A spinbox will appear to ask you how many processes you want. This is highly ill-advised on the .exe version.**
 
 
 - Localisation visualisation
 
-This feature can be accesed through the CSV viewer of the project. If you have loaded a result distance file, you can select with left-click a transcript Ensembl ID and two coordinates. Once done, you can right-click and a menu will appear. You can decide to plot the configuration with the DNA distances or not.
+This feature can be accessed through the CSV viewer of the project. If you have loaded a result distance file, you can select with left-click a transcript Ensembl ID and two coordinates. You can then right-click and a menu will appear. You can decide to plot the configuration with the DNA distances or not.
 
 __Example__:
 
