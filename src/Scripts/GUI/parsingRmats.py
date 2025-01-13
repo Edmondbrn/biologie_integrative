@@ -1,5 +1,7 @@
 from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QPushButton, QVBoxLayout, QWidget, QLabel
 from ..Back.parsing_rmats import getRmatsFiles, filterStrand, chooseParsing
+from .app_utils import load_stylesheet, show_alert
+from ..GLOBAL import QSS_PATH
 import os
 
 class ParsingRmats(QMainWindow):
@@ -7,6 +9,7 @@ class ParsingRmats(QMainWindow):
         super().__init__()
         self.setWindowTitle("rMATS Parser")
         self.setGeometry(100, 100, 400, 300)
+        self.setStyleSheet(load_stylesheet(QSS_PATH))
 
         layout = QVBoxLayout()
 
@@ -47,11 +50,11 @@ class ParsingRmats(QMainWindow):
         if self.rmats_dir and self.output_dir:
             try:
                 self.processRmats(self.rmats_dir, self.output_dir)
-                self.statusBar().showMessage("Processing completed!")
+                show_alert("info", "rMATS files processed successfully!")
             except Exception as e:
-                self.statusBar().showMessage(f"Error: {str(e)}")
+                show_alert("error", f"An error occurred: {str(e)}")
         else:
-            self.statusBar().showMessage("Please select both directories!")
+            show_alert("warning", "Please select both rMATS and output directories!")
 
     def processRmats(self, rmats_dir: str, output_dir: str):
         # Change the current working directory to the output directory

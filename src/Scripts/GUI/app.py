@@ -20,7 +20,6 @@ import pyensembl as pb
 
 from ..Back.distances import *
 from .CSV_Viewer import CSVViewer
-from .Error_window import SimpleWindow
 
 from .RNAtoDNA import RNAtoDNAWindow
 from .parsingRmats import ParsingRmats

@@ -8,16 +8,17 @@ from PyQt6.QtWidgets import (
 
 from io import StringIO
 from PyQt6.QtGui import QIcon
-from .app_utils import show_alert
+from .app_utils import show_alert, load_stylesheet
 from ..Back.SequenceFinder import SequenceFinder
 from pandas import read_csv
 from ..Back.distances_utils import FilterDataProt
-
+from ..GLOBAL import QSS_PATH
 
 class RNAtoDNAWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("RNA to DNA Converter")
+        self.setStyleSheet(load_stylesheet(QSS_PATH))
         self.resize(600, 400)
         self.setWindowIcon(QIcon("path_to_icon.png"))
 
@@ -53,7 +54,7 @@ class RNAtoDNAWindow(QDialog):
         """
         Section pour sélectionner le fichier d'entrée.
         """
-        group_input = QGroupBox("Input File")
+        group_input = QGroupBox()
         input_layout = QVBoxLayout(group_input)
 
         instruction_label = QLabel("Please select the RNA file to convert to DNA")
@@ -84,7 +85,7 @@ class RNAtoDNAWindow(QDialog):
         """
         Section pour sélectionner le répertoire de sortie et le nom du fichier.
         """
-        group_output = QGroupBox("Output Directory")
+        group_output = QGroupBox()
         output_layout = QVBoxLayout(group_output)
 
         instruction_label = QLabel("Please select the output directory and file name")
