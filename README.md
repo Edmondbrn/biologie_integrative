@@ -86,3 +86,25 @@ This part will be dedicated to explain how to use the software.
 
 - Home view
 <img src="src/Ressources/readme_data/home.png" alt="home" width="400">
+
+When you start the program, a window like this will open. From this window you can load datasets from the menu `File`, or from the table icon. If you don't want to load a datasets directly, you can click on the `Actions` menu to get access to the features.
+
+
+- Compute Distances
+
+This menu will trigger various sub-menus to let you choose what type of calculation you want to. You can choose between :
+
+    1. A5SS alternative splicing sites
+    2. A3SS alternative splicing sites
+    3. RI alternative splicing sites
+    4. MXE alternative splicing sites
+    5. SE alternative splicing sites
+    6. All types of alternative splicing sites
+    7. Manual mode
+
+After your choice, a window of this style will open:
+<img src="src/Ressources/readme_data/distance_menu1.png" alt="home" width="400">
+
+You have a section to load the reference datasets. The calculations will be based on these coordinates (ref_coordinates - 2nd_coordinates). Also for the comparaison datasets. You can load excel and CSV files. Note that for CSV files, we will scan the file to set the separator characater. If it fails, please select yourself the character.
+
+After that you have to select an output directory ans an output file name. If nothing is given, the output files will be in the root prooject with just `dna`or `rna`prefix. If everythin is done, you can click and `Validate`
