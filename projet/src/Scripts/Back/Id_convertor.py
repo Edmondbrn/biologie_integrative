@@ -30,9 +30,9 @@ def add_ensembl_ids(file_path: str):
     for res in conversion:
         if 'ensembl' in res and 'transcript' in res['ensembl']:
             if not isinstance(res["ensembl"]["transcript"], list) :
-                conversion_dict[res['query']] = [res['ensembl']['transcript']]
-            else:
                 conversion_dict[res['query']] = res['ensembl']['transcript']
+            else:
+                conversion_dict[res['query']] = res['ensembl']['transcript'][0]
         else:
             conversion_dict[res['query']] = '\'Not Found\''
     

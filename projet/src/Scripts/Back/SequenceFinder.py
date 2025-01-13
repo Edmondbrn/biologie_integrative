@@ -2,7 +2,6 @@ import pyensembl as pb
 from pandas import read_csv, DataFrame
 import os
 import regex
-import ast
 
 NB_PROCESS = 4
 ENSEMBL_NAME = "ensembl_id"
@@ -31,10 +30,6 @@ class SequenceFinder():
         """
         # self.__data_splice = data_splice
         self.__data_prot = data_prot
-        litteral_col = []
-        for row in self.__data_prot["ensembl_id"]:
-            litteral_col.append(ast.literal_eval(row))
-        self.__data_prot["ensembl_id"] = litteral_col
         self.__species = species
         self.__assembly = aim_assembly
         # TODO change the ensemble release according to user input
@@ -88,8 +83,7 @@ class SequenceFinder():
             for j in range(i * number_id_per_dict, (i + 1) * number_id_per_dict): # filling the dictionnaries
                 if j >= size_ensembl_id: # if we reach the end of the list of ensembl ID (avoid out of range if the division is not absolute)
                     break
-
-                dict_tmp[(tuple(ensembl_id[j]), j)] = fixation_sequence[j]
+                dict_tmp[(ensembl_id[j], j)] = fixation_sequence[j]
                 # On a un dictionnaire avec en clé les identifiants Ensembl et en valeur les séquences de fixation
             self.__general_list.append(dict_tmp)
         return None
@@ -116,36 +110,28 @@ class SequenceFinder():
         end = start + len(sequence)
         return start, end
 
-    def __alignSequences(self, parameters: list[pb.Database, dict[tuple[str, int], str]]) -> dict[tuple[str, int], tuple[int, int]]:
+    def __alignSequences(self, parameters : list[pb.Database , dict[ tuple[str, int] : str]]) -> dict[ tuple[str, int] : tuple[int, int]]:
         """
         Method to align the sequences on the cDNA from pyensembl
         """
         bdd, input_data = parameters
-        ensembl_ids = input_data.keys()
+        ensembl_id = input_data.keys()
         sequences = input_data.values()
         result = {}
-        
-        for ensembl_id, sequence in zip(ensembl_ids, sequences):
-            transcript = None
-            for ensembl_id_part in ensembl_id[0]:
-                try:
-                    transcript = bdd.transcript_by_id(ensembl_id_part)
-                    break  # Si on trouve un transcript valide, on sort de la boucle
-                except:
-                    continue  # Si on ne trouve pas, on continue avec le prochain identifiant
-            
-            if transcript is None:
-                result[ensembl_id] = ("unknown", "unknown"), [("unknown", "unknown")], 'unknown'
-            else:
+        for ensembl_id, sequence in zip(ensembl_id, sequences):
+            try:
+                transcript : pb.Transcript = bdd.transcript_by_id(ensembl_id[0])
                 cDNA = transcript.sequence
                 gene = transcript.gene_id
+            except:
+                result[ensembl_id] = ("unknown", "unknown"), [("unknown", "unknown")], 'unknown'
+            else :
                 rna_start, rna_end = SequenceFinder.align(cDNA, sequence)
                 if SequenceFinder.isRnaCoordNumber(rna_start) and SequenceFinder.isRnaCoordNumber(rna_end):
-                    self.genomic_coordinate_list = self.__spliced_to_genomic(transcript, range(rna_start, rna_end + 1))
+                    self.genomic_coordinate_list = self.__spliced_to_genomic(transcript, range(rna_start, rna_end+1))
                     result[ensembl_id] = ((rna_start, rna_end), self.genomic_coordinate_list, gene)
                 else:
                     result[ensembl_id] = ("Not found", "Not found"), [("Not found", "Not found")], "Not found"
-        
         return result
     
     def __spliced_to_genomic(self, transcript : pb.Transcript, spliced_positions : list[int]):
