@@ -281,13 +281,16 @@ class MainWindow(QMainWindow):
         Detect the separator used in a CSV file.
         """
         with open(file_path, 'r') as file:
-            # Read the first line of the file
+        # Read the first line of the file
             sample = file.read(1024)
             # Try different separators
             sniffer = csv.Sniffer()
-            sep = sniffer.sniff(sample).delimiter
+            try:
+                sep = sniffer.sniff(sample).delimiter
+            except csv.Error:
+                # Default to tab if no separator is found
+                sep = '\t'
             return sep
-        return ','  # Default to comma if no separator is found
     
     def onCalculateDistances(self, splice_type, reference_file, genomic_file):
         dialog = SplicingDistancesWindow(splice_type, reference_file, genomic_file)

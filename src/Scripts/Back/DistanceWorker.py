@@ -99,8 +99,8 @@ class DistancesWorker(QThread):
         df_rna = pd.DataFrame(results_rna)
         if not os.path.isdir(self.output_dir):
             os.makedirs(self.output_dir)
-        df_dna.to_csv(f"{self.output_dir}/dna_{self.file_basename}.tsv", sep="\t", index=False)
-        df_rna.to_csv(f"{self.output_dir}/rna_{self.file_basename}.tsv", sep="\t", index=False)
+        df_dna.to_csv(f"{self.output_dir}/dna_{self.file_basename}.csv", sep="\t", index=False)
+        df_rna.to_csv(f"{self.output_dir}/rna_{self.file_basename}.csv", sep="\t", index=False)
         self.finished_signal.emit()  # émettre le signal de fin
 
 class ParallelDistancesWorker(QThread):

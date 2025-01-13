@@ -144,8 +144,8 @@ def convert_dna_to_rna( prot_coordinate: int,
     
     has_star = True si on détecte un site dans un intron.
     """
-    if not isinstance(prot_coordinate, int) or not isinstance(splice_coordinate, int) or not isinstance(dna_distance, int):
-        raise TypeError("All inputs must be integers")
+    # if not isinstance(prot_coordinate, int) or not isinstance(splice_coordinate, int) or not isinstance(dna_distance, int):
+    #     raise TypeError("All inputs must be integers")
     for exon in exon_pos_list:
         if not isinstance(exon, tuple) or len(exon) != 2:
             raise ValueError("Each element of the list must be a tuple of 2 elements")
@@ -330,8 +330,8 @@ def parallel_start_manual(df_ref: pd.DataFrame,
     df_rna_concat = pd.concat(results_rna, ignore_index=True)
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-    df_rna_concat.to_csv(f"{output_dir}/rna_{output_basename}.tsv", sep="\t", index=False)
-    df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.tsv", sep="\t", index=False)
+    df_rna_concat.to_csv(f"{output_dir}/rna_{output_basename}.csv", sep="\t", index=False)
+    df_dna_concat.to_csv(f"{output_dir}/dna_{output_basename}.csv", sep="\t", index=False)
     return
 
 
@@ -425,8 +425,8 @@ def parallel_start_manual_all(df_ref: pd.DataFrame,
         # Cette fonction est appelée dans le process principal 
         # dès qu'un chunk a fini de s’exécuter
         (df_dna_chunk, df_rna_chunk, splice_type) = result
-        df_dna_chunk.to_csv(f"{output_dir}/dna_{splice_type}_{output_basename}.tsv", sep="\t", index=False)
-        df_rna_chunk.to_csv(f"{output_dir}/rna_{splice_type}_{output_basename}.tsv", sep="\t", index=False)
+        df_dna_chunk.to_csv(f"{output_dir}/dna_{splice_type}_{output_basename}.csv", sep="\t", index=False)
+        df_rna_chunk.to_csv(f"{output_dir}/rna_{splice_type}_{output_basename}.csv", sep="\t", index=False)
 
         # On peut appeler la callback pour la progression
         if progress_callback is not None:

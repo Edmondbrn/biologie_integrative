@@ -388,7 +388,7 @@ class ManualDistancesWindow(QDialog):
                                                 n_processes=self.thread_counter.value(),
                                                 release=self.release,
                                                 species=self.species,
-                                                output_dir = self.output_directory.text().split(":")[1][1:],
+                                                output_dir = self.output_directory.text().split(":")[1].strip(),
                                                 file_basename=self.file_name_space.toPlainText() + "_" + splice_name)
 
             self.worker.progress_changed.connect(self.updateParallelProgressBar)
