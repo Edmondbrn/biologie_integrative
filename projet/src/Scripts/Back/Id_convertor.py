@@ -1,90 +1,47 @@
-import os
+import mygene
 import pandas as pd
-from pybiomart import Server
 
-def check_available_filters():
-    server = Server(host='http://www.ensembl.org')
-    mart = server.marts['ENSEMBL_MART_ENSEMBL']
-    dataset = mart.datasets['mmusculus_gene_ensembl']
-    filters = dataset.filters
-    print(filters)
-
-
-# ------------------------------
-# 1) Vérifier le type d'identifiants NCBI (NM, NR, XM, XR)
-# ------------------------------
-def check_data(identifier: str) -> str:
+def convert_refseq_to_ensembl(refseq_ids):
     """
-    Retourne le type de RefSeq correspondant
-    si l'identifiant contient 'NM', 'NR', 'XM' ou 'XR'.
-    Lève une exception sinon.
+    Convertit une liste d'identifiants RefSeq en identifiants Ensembl
+    en utilisant la librairie MyGene.
+    
+    refseq_ids: liste de string (e.g. ["NM_001301415", "NR_002847", ...])
+    Retour: liste de dictionnaires contenant les résultats.
     """
-    if "NM" in identifier:
-        return "refseq_mrna"
-    elif "NR" in identifier:
-        return "refseq_ncrna"
-    elif "XM" in identifier:
-        return "refseq_mrna_predicted"
-    elif "XR" in identifier:
-        return "refseq_ncrna_predicted"
-    else:
-        raise ValueError("Invalid identifier format. Please provide identifiers with NCBI prefixes (NM, NR, XM, XR).")
-
-# ------------------------------
-# 2) Conversion des identifiants NCBI vers Ensembl
-# ------------------------------
-def convert_ids(ncbi_ids, data_type):
-    server = Server(host='http://www.ensembl.org')
-    mart = server.marts['ENSEMBL_MART_ENSEMBL']
-    dataset = mart.datasets['mmusculus_gene_ensembl']
-
-    results = dataset.query(attributes=[data_type, 'ensembl_transcript_id'], filters={data_type: ncbi_ids})
+    mg = mygene.MyGeneInfo()
+    # scopes='refseq' : on indique que l'on fournit des identifiants RefSeq
+    # fields='ensembl.transcript' : on demande à récupérer les transcrits Ensembl
+    # species='mouse' pour la souris (Mus musculus)
+    results = mg.querymany(refseq_ids, 
+                           scopes='refseq', 
+                           fields='ensembl.transcript', 
+                           species='mouse')
     return results
 
-# ------------------------------
-# 3) Ajouter les identifiants Ensembl au fichier
-# ------------------------------
 def add_ensembl_ids(file_path: str):
-    file_extension = os.path.splitext(file_path)[1].lower()
+    df = pd.read_csv(file_path, sep='\t')
+    df = df.drop(columns=["ensembl_transcript_id"])
+    ncbi_ids = df["refseq_complete"].tolist()
+    conversion = convert_refseq_to_ensembl(ncbi_ids)
     
-    # Lire le fichier en fonction de son extension
-    if file_extension == '.csv':
-        df = pd.read_csv(file_path)
-    elif file_extension == '.tsv':
-        df = pd.read_csv(file_path, sep='\t')
-    elif file_extension in ['.xls', '.xlsx']:
-        df = pd.read_excel(file_path)
-    else:
-        raise ValueError("Unsupported file format. Please provide a CSV, TSV, or Excel file.")
-    
-    # Identifier la colonne contenant les identifiants NCBI
-    ncbi_column = None
-    for column in df.columns:
-        if any(prefix in str(df[column].iloc[0]) for prefix in ["NM", "NR", "XM", "XR"]):
-            ncbi_column = column
-            break
-    
-    if ncbi_column is None:
-        raise ValueError("No NCBI identifiers found in the file.")
-    
-    # Obtenir tous les types de données NCBI présents dans la colonne
-    data_types = df[ncbi_column].apply(check_data).unique()
-    
-    # Créer un dictionnaire de conversion pour chaque type de données NCBI
+    # Créer un dictionnaire de conversion
     conversion_dict = {}
-    for data_type in data_types:
-        ncbi_ids = df[df[ncbi_column].apply(check_data) == data_type][ncbi_column].astype(str).tolist()
-        conversion_results = convert_ids(ncbi_ids, data_type)
-        conversion_dict.update(dict(zip(conversion_results[data_type], conversion_results['ensembl_transcript_id'])))
+    for res in conversion:
+        if 'ensembl' in res and 'transcript' in res['ensembl']:
+            if not isinstance(res["ensembl"]["transcript"], list) :
+                conversion_dict[res['query']] = res['ensembl']['transcript']
+            else:
+                conversion_dict[res['query']] = res['ensembl']['transcript'][0]
+        else:
+            conversion_dict[res['query']] = '\'Not Found\''
     
     # Ajouter une nouvelle colonne avec les identifiants Ensembl
-    df['ensembl_transcript_id'] = df[ncbi_column].map(conversion_dict).fillna('Not Found')
+    df['ensembl_id'] = df['refseq_complete'].map(conversion_dict).fillna('Not Found')
     
     # Sauvegarder le fichier modifié
-    if file_extension == '.csv':
-        df.to_csv(file_path, index=False)
-    elif file_extension == '.tsv':
-        df.to_csv(file_path, sep='\t', index=False)
-    elif file_extension in ['.xls', '.xlsx']:
-        df.to_excel(file_path, index=False)
+    df.to_csv(file_path +"_converted", sep='\t', index=False)
 
+if __name__ == '__main__':
+    file_path = "/home/edmond/Documents/GB5/biologie_integrative/projet/src/Ressources/data/FMRP_Binding_sites_mouse_Maurin_NAR_2014_merged.tsv"
+    add_ensembl_ids(file_path)
