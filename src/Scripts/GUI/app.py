@@ -30,12 +30,6 @@ from .parsingRmats import ParsingRmats
 from ..GLOBAL import *
 from .EnsemblDialog import EnsemblDialog
 
-
-def load_stylesheet(file_path):
-    with open(file_path, "r") as file:
-        return file.read()
-
-
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -49,7 +43,7 @@ class MainWindow(QMainWindow):
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
 
-        self.setWindowTitle("BI Project")
+        self.setWindowTitle("RepositionX")
         self.setWindowIcon(QIcon(f"{GLOBAL.ICON_PATH}BI_logo.png"))
 
         # Configure the window to start maximized

@@ -7,6 +7,7 @@ from PyQt6.QtGui import QIcon
 import pyensembl as pb
 import sys
 import os
+from .app_utils import load_stylesheet
 
 from ..GLOBAL import *
 
@@ -14,6 +15,7 @@ from ..GLOBAL import *
 class EnsemblDialog(QDialog):
     def __init__(self):
         super().__init__()
+        self.setStyleSheet(load_stylesheet(QSS_PATH))
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
         self.setWindowTitle("Sélection de l'espèce et release Ensembl")
         self.resize(400, 200)
