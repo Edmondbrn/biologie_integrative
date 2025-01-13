@@ -3,15 +3,15 @@ import sys
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
-    QLabel, QFileDialog, QPlainTextEdit, QProgressBar, QInputDialog
+    QLabel, QFileDialog, QPlainTextEdit, QCheckBox, QInputDialog
 )
 
 from io import StringIO
 from PyQt6.QtGui import QIcon
 from .app_utils import show_alert, load_stylesheet
 from ..Back.SequenceFinder import SequenceFinder
+from Back.SequenceFinder_lazy import SequenceFinderLazy
 from pandas import read_csv
-from ..Back.distances_utils import FilterDataProt
 from ..GLOBAL import QSS_PATH
 
 class RNAtoDNAWindow(QDialog):
@@ -69,6 +69,10 @@ class RNAtoDNAWindow(QDialog):
         file_layout.addWidget(open_file_button)
 
         input_layout.addLayout(file_layout)
+
+        self.choice_program = QCheckBox("Skip sequence alignement ?")
+        input_layout.addWidget(self.choice_program)
+
         self.main_layout.addWidget(group_input)
 
     def select_input_file(self):
@@ -148,7 +152,11 @@ class RNAtoDNAWindow(QDialog):
             df_rna = read_csv(self.input_file, sep="\t")
 
             # Initialiser l'objet SequenceFinder
-            seq_finder = SequenceFinder(data_prot=df_rna)
+            if self.choice_program.isChecked():
+                seq_finder = SequenceFinderLazy(data_prot=df_rna)
+            
+            else:
+                seq_finder = SequenceFinder(data_prot=df_rna)
 
             # Intercepter les interactions utilisateur
             self.redirect_user_input()
