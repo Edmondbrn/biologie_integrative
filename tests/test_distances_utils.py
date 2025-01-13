@@ -10,7 +10,7 @@ import numpy as np
 
 @pytest.fixture
 def get_dataframe():
-    return pd.read_csv("/home/edmond/Documents/GB5/biologie_integrative/projet/src/Ressources/data/data_filteredfinal.tsv", sep="\t")
+    return pd.read_csv("../src/Ressources/data/data_filteredfinal.tsv", sep="\t")
 
 @pytest.fixture
 def get_exon_list():

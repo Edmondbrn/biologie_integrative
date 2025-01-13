@@ -150,11 +150,11 @@ __Example__:
 
 ## Authors
 
-**First author**
+**First authors**
 - [@Berne Edmond](https://github.com/Edmondbrn)
-
-**Other authors**
 - [@Martin François](https://www.github.com/octokatherine)
+
+**Other author**
 - [@Rouget Simon](https://www.github.com/octokatherine)
 
 
