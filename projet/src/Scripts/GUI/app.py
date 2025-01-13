@@ -14,20 +14,16 @@ from .app_utils import show_alert, load_stylesheet
 
 from ..Back.DrawGene import GeneImage
 from ..Back.Id_convertor import *
-from ..GLOBAL import *
+from .. import GLOBAL
 
 import sys
 import pandas as pd
 import pyensembl as pb
 import csv
+import importlib
 
-from ..Back.distances import *
 from .CSV_Viewer import CSVViewer
 from .EnsemblDialog import EnsemblDialog
-
-def load_stylesheet(file_path):
-    with open(file_path, "r") as file:
-        return file.read()
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -37,17 +33,19 @@ class MainWindow(QMainWindow):
         self.prot_file = None
         self.genomic_file = None
         self.output_file = None 
-        self.release = f"release : {RELEASE}, species : {SPECY}"
+        self.species, self.release = self.release_reader(GLOBAL.RELEASE_FILE_PATH)
+        self.release = int(self.release)
+        print(f"Release: {self.release}, Species: {self.species}")
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
 
         self.setWindowTitle("BI Project")
-        self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
+        self.setWindowIcon(QIcon(f"{GLOBAL.ICON_PATH}BI_logo.png"))
 
         # Configure the window to start maximized
         self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
 
-        self.setStyleSheet(load_stylesheet(QSS_PATH))
+        self.setStyleSheet(load_stylesheet(GLOBAL.QSS_PATH))
 
         self.__create_menu()
         # Central widget
@@ -60,7 +58,7 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(layout)
 
         logo = QPushButton()
-        logo.setIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
+        logo.setIcon(QIcon(f"{GLOBAL.ICON_PATH}BI_logo.png"))
         logo.setObjectName('logo')
         logo.setIconSize(QSize(500, 500))  # Set the icon size
         logo.setFixedSize(500, 500)
@@ -78,40 +76,41 @@ class MainWindow(QMainWindow):
 
         # ============================ définition des boutons ===============================
         # bouton pour charger un fichier
-        button_load_data = QAction(QIcon(f"{ICON_PATH}document-excel.png"), "Load data", self)
+        button_load_data = QAction(QIcon(f"{GLOBAL.ICON_PATH}document-excel.png"), "Load data", self)
         button_load_data.setStatusTip("Load data from a CSV table")
         button_load_data.triggered.connect(self.open_file_dialog)
         toolbar.addAction(button_load_data)
 
         # bouton pour charger un output
-        button_load_output = QAction(QIcon(f"{ICON_PATH}document-excel-table.png"), "Load output", self)
+        button_load_output = QAction(QIcon(f"{GLOBAL.ICON_PATH}document-excel-table.png"), "Load output", self)
         button_load_output.setStatusTip("Load output from a CSV table")
         button_load_output.triggered.connect(self.open_output_dialog)
         toolbar.addAction(button_load_output)
 
         # bouton pour quitter l'application
-        button_quit = QAction(QIcon(f"{ICON_PATH}door-open-out.png"), "Quit", self)
+        button_quit = QAction(QIcon(f"{GLOBAL.ICON_PATH}door-open-out.png"), "Quit", self)
         button_quit.setStatusTip("Close application")
         button_quit.triggered.connect(self.close)
         toolbar.addAction(button_quit)
 
         # Bouton pour convertir des coordonnées ARNm en coordonnées génomiques
-        button_convert = QAction(QIcon(f"{ICON_PATH}arrow-circle.png"), "Convert mRNA to DNA", self)
+        button_convert = QAction(QIcon(f"{GLOBAL.ICON_PATH}arrow-circle.png"), "Convert mRNA to DNA", self)
         button_convert.setStatusTip("Convert RNA coordinates to genomic coordinates")
         button_convert.triggered.connect(lambda: self.onMyToolBarButtonClick("test pression bouton"))
 
         #Bouton pour convertir les ID d'ensembl à NCBI
-        button_convert_ID = QAction(QIcon(f"{ICON_PATH}address-book-blue.png"), "Change NCBI IDs to Ensembl IDs", self)
+        button_convert_ID = QAction(QIcon(f"{GLOBAL.ICON_PATH}address-book-blue.png"), "Change NCBI IDs to Ensembl IDs", self)
         button_convert_ID.setStatusTip("Change NCBI IDs to Ensembl IDs")
         button_convert_ID.triggered.connect(lambda: self.file_loader_ID())
 
-        button_change_release = QAction(QIcon(f"{ICON_PATH}arrow-circle-double.png"), "Change release and species", self)
+        button_change_release = QAction(QIcon(f"{GLOBAL.ICON_PATH}arrow-circle-double.png"), "Change release and species", self)
         button_change_release.setStatusTip("Change the release and species of the ensembl genome reference")
         button_change_release.triggered.connect(lambda: self.change_release())
+        
 
         # ============================ définition des sous menus ===============================
         calculate_distances_menu = QMenu("Calculate distances", self)
-        calculate_distances_menu.setIcon(QIcon(f"{ICON_PATH}ruler.png"))
+        calculate_distances_menu.setIcon(QIcon(f"{GLOBAL.ICON_PATH}ruler.png"))
         # Ajoute les actions pour les différents types d'épissage alternatif
         for splice_type in [ "A5SS", "A3SS", "RI", "MXE", "SE"]:
             action = QAction(f"Calculate distances for {splice_type}", self)
@@ -148,22 +147,22 @@ class MainWindow(QMainWindow):
         download_menu = menu.addMenu("Release")
         download_menu.addAction(button_change_release)
 
-        menu.addMenu(self.release)
+        self.release_menu = QMenu(self)
+        self.menuBar().addMenu(self.release_menu)
 
-    def dynamic_release(self, menu):
-        # Supprimer le menu s'il existe déjà
-        existing_menu = menu.findChild(QMenu, "release_menu")
-        if existing_menu:
-            existing_menu.deleteLater()
+        # Initialiser le texte du menu
+        self.update_release_menu()
 
-        # Créer un nouveau menu avec le texte des variables globales
-        self.release_menu = QMenu(f"Release: {RELEASE}, Species: {SPECY}", self)
-        self.release_menu.setObjectName("release_menu")
-        menu.addMenu(self.release_menu)
+    def update_release_menu(self):
+        # Mettre à jour le titre du menu avec les valeurs actuelles de GLOBAL
+        self.release_menu.setTitle(f"Release: {self.release}, Species: {self.species}")
 
     def change_release(self):
         dialog = EnsemblDialog()
-        dialog.exec()
+        if dialog.exec():  
+            self.species, self.release = self.release_reader(GLOBAL.RELEASE_FILE_PATH)
+            print(f"New values - Release: {self.release}, Species: {self.species}")
+            self.update_release_menu()
 
     def onManualDistances(self, reference_file=None, genomic_file=None):
         dialog = ManualDistancesWindow(reference_file, genomic_file)
@@ -251,6 +250,13 @@ class MainWindow(QMainWindow):
     def close_file_custom(self, variable_name: str):
         setattr(self, variable_name, None)
         self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
+
+    def release_reader(self, file_path):
+        lines = []
+        with open(file_path, "r") as file:
+            for line in file:
+                lines.append(line.strip())
+            return lines
 
     def detect_separator(self, file_path):
         """

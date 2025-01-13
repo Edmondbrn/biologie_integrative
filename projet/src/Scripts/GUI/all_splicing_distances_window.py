@@ -10,7 +10,6 @@ import traceback
 from .manual_distances_window import ManualDistancesWindow
 from .app_utils import show_alert, load_stylesheet
 
-from ..Back.distances import Distances
 from ..Back.DistanceWorkerAll import DistancesWorkerAll, ParallelDistancesWorkerAll
 from ..Back.distances_utils import FilterDataProt
 
@@ -23,6 +22,8 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         self.splice = splice_type
         self.couple = []
         self.setWindowTitle("All Splicing Dis Calculation")
+        self.species, self.release = self.release_reader(RELEASE_FILE_PATH)
+        self.release = int(self.release)
 
     def create_second_file_section(self):
         """
@@ -189,8 +190,8 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
                                          input_df = self.dict_splicing_files, 
                                          comparison_couples = self.dict_splice_couples,
                                          output_dir = self.output_directory.text().split(":")[1][1:], 
-                                         release = RELEASE,
-                                         species = SPECY,
+                                         release = self.release,
+                                         species = self.species,
                                          file_basename = self.file_name_space.toPlainText())
         
             self.worker.progress_changed.connect(self.updateProgressBar)
@@ -218,8 +219,8 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
                                                 input_dfs=self.dict_splicing_files,
                                                 comparison_couples=self.dict_splice_couples,
                                                 n_processes=len(self.dict_splicing_files),
-                                                release=RELEASE,
-                                                species=SPECY,
+                                                release=self.release,
+                                                species=self.species,
                                                 output_dir = self.output_directory.text().split(":")[1][1:],
                                                 file_basename=self.file_name_space.toPlainText())
 
@@ -253,4 +254,9 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         self.progress_layout.addLayout(hbox)
 
         self.layout().addWidget(self.group_progress)
+
+    def release_reader(self, file_path):
+        with open(file_path, "r") as file:
+            lines = [file[0], file[1]]
+            return lines
     
