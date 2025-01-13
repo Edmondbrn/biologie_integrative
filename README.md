@@ -102,10 +102,10 @@ Inside the `Actions` menu, you can click on the `Convert mRNA to DNA` submenu. Y
 
 So, the software will ask you the path to the datasets which contains the coordinates to translate into DNA ones and the path for the output datasets. Note that your dataset must repsect some constraints:
 
- - ensembl_id column containing the ensemble transcript ID of the event
- - seq column for the fixation sequence on RNA if you have it
- - start for the 1st coordinate on the mRNA
- - end for the 2nd coordinates on the mRNA
+ - "ensembl_id" column containing the ensemble transcript ID of the event
+ - "seq" column for the fixation sequence on RNA if you have it
+ - "start" for the 1st coordinate on the mRNA
+ - "end" for the 2nd coordinates on the mRNA
 
 Note that the software will ask you if you need the fixation sequence. If you don't and directly have the mRNA coordinates, please select the option. If you only have the fixation sequence on the mRNA, don't choose this option. The program will align the sequence to get itself the start and end coordinates.
 
@@ -122,7 +122,7 @@ This menu will trigger various sub-menus to let you choose what type of calculat
     6. All types of alternative splicing sites
     7. Manual mode
 
-After your choice, a window of this style will open:
+After your choice, a window of the following appearance will open:
 
 <img src="src/Ressources/readme_data/distance_menu1.png" alt="home" width="400">
 
