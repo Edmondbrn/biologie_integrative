@@ -55,7 +55,7 @@ After the building you can run the docker with:
 bash boot_docker.sh
 ```
 
-Note that if you want to get back the ouput file of the program, you will have to mount your output repository inside the docker. See the commented line inside boot_docker.sh.
+Note that if you want to retrieve the ouput file of the program, you will have to mount your output repository inside the docker. See the commented line inside boot_docker.sh.
 
 
     
