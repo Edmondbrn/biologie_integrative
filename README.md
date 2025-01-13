@@ -1,6 +1,6 @@
 
 # RepostionX
-
+![BI Logo](src/Ressources/Icones/fugue-icons-3.5.6/icons/BI_logo.png)
 RepositionX is a `python3` free and opensource software wich allow you to compute distances between two sites on RNA or DNA. RepositionX is a final student year project at Polytech Nice-Sophia bio-engineering school in partnership with the labaratory IPMC memeber of the CNRS.
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
@@ -43,7 +43,7 @@ And launch the project with :
 ```
 
 - Docker:
-A docker file is also furnished with the project. Linux user can directly build the image with :
+A docker file is also furnished with the project. Linux users can directly build the image with :
 
 ```bash
 docker build -t <your-username>/RepositionX dockerfile
@@ -68,5 +68,23 @@ Note that if you want to get back the ouput file of the program, you wille have 
 **Other authors**
 - [@Martin François](https://www.github.com/octokatherine)
 - [@Rouget Simon](https://www.github.com/octokatherine)
+
+
+
+## Features
+
+- Cross platform
+- Convert NCBI transcript IDs into Ensembl IDs
+- Convert mRNA coordinates into DNA coordinates
+- Filter and restructure Rmats ouput files
+- Compute DNA distances and mRNA distances
+- Visualise protein fixation sites ont raw RNA
+
+
+## Documentation
+
+This part will be dedicated to explain how to use the software.
+
+- Home view
 
 
