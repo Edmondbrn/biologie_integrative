@@ -2,11 +2,13 @@ import pyensembl as pb
 from pandas import read_csv, DataFrame
 import os
 import regex
+from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QLabel, QRadioButton, QPushButton, QButtonGroup
 
 NB_PROCESS = 4
 ENSEMBL_NAME = "ensembl_id"
 SEQUENCE_NAME = "seq"
 RELEASE = 102
+SPECIES = "mus_musculus"
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -15,7 +17,6 @@ class SequenceFinder():
     Cette classe va permettre de récupérer les coordonnées ARN données en entrée et de les convertir en 
     coordonnées ADN à l'aide de l'API REST de Ensembl.
     """
-
 
     def __init__(self, 
                 #  data_splice : DataFrame, 
@@ -29,11 +30,12 @@ class SequenceFinder():
         :param species: Espèce sur laquelle effectuer la recherche.
         """
         # self.__data_splice = data_splice
+        super().__init__()
         self.__data_prot = data_prot
         self.__species = species
         self.__assembly = aim_assembly
         # TODO change the ensemble release according to user input
-        self.__bdd = pb.EnsemblRelease(RELEASE, species=self.__species) # version 102 pour avoir l'assemblage 38 de la souris
+        self.__bdd = pb.EnsemblRelease(RELEASE, species=SPECIES) # version 102 pour avoir l'assemblage 38 de la souris
         self.__bdd.download()
         self.__bdd.index()
 
@@ -66,10 +68,6 @@ class SequenceFinder():
     def isRnaCoordNumber(coord):
         return isinstance(coord, int)
     
-
-    
-
-
     def ___getFixationSequence(self) -> list[ dict[ tuple[str, int] : str] ]:
         """
         Method to get the sequences and Ensembl ID from the file stored in self.data_prot
@@ -92,10 +90,7 @@ class SequenceFinder():
         return None
     
     @staticmethod
-    def align(cDNA : str, sequence : str) -> tuple[int, int]:
-        """
-        Method to align the sequence on the cDNA
-        """
+    def align(cDNA: str, sequence: str) -> tuple[int, int]:
         pattern = f"({sequence}){{e<=0}}"
         matches = list(regex.finditer(pattern, cDNA))
         
@@ -104,14 +99,51 @@ class SequenceFinder():
         elif len(matches) == 1:
             start = matches[0].start()
         else:
-            print("Multiple start found")
-            for idx, match in enumerate(matches):
-                print(f"{idx}: {match.start()}")
-            position = int(input(f"Choose which one you want to keep: "))
-            start = matches[position].start()
+            start = SequenceFinder.show_choice_dialog(matches)
         
         end = start + len(sequence)
         return start, end
+    
+    @staticmethod
+    def show_choice_dialog(matches):
+        """
+        Affiche une fenêtre de dialogue pour permettre à l'utilisateur de choisir parmi les différents matchs.
+        """
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication([])
+
+        dialog = QDialog()
+        dialog.setWindowTitle("Match choice")
+        layout = QVBoxLayout()
+
+        label = QLabel("Multiple start found. Choose which one you want to keep:")
+        layout.addWidget(label)
+
+        button_group = QButtonGroup(dialog)
+        radio_buttons = []
+
+        for idx, match in enumerate(matches):
+            radio_button = QRadioButton(f"Match {idx}: Start at {match.start()}")
+            radio_buttons.append(radio_button)
+            button_group.addButton(radio_button)
+            layout.addWidget(radio_button)
+
+        submit_button = QPushButton("Submit")
+        layout.addWidget(submit_button)
+
+        def on_submit():
+            selected_button = button_group.checkedButton()
+            if selected_button:
+                selected_index = radio_buttons.index(selected_button)
+                dialog.done(selected_index)
+
+        submit_button.clicked.connect(on_submit)
+        dialog.setLayout(layout)
+        dialog.exec()
+
+        selected_index = dialog.result()
+        return matches[selected_index].start()
 
     def __alignSequences(self, parameters : list[pb.Database , dict[ tuple[str, int] : str]]) -> dict[ tuple[str, int] : tuple[int, int]]:
         """
@@ -195,17 +227,14 @@ class SequenceFinder():
         """
         start_list = {"start_ensembl" : list()}
         end_list = {"end_ensembl" : list()}
-        list_id = {"ensembl_id" : list()}
         gene_list_id = {"GeneID" : list()}
         for id, coord in coord_dict.items():
             start_list["start_ensembl"].append(coord[0][0])
             end_list["end_ensembl"].append(coord[0][1])
-            list_id["ensembl_id"].append(id[0])
             gene_list_id["GeneID"].append(coord[2])
 
         self.__data_prot = self.__data_prot.join(DataFrame(start_list))
         self.__data_prot = self.__data_prot.join(DataFrame(end_list))
-        self.__data_prot = self.__data_prot.join(DataFrame(list_id))
         self.__data_prot = self.__data_prot.join(DataFrame(gene_list_id))
         return None
     
@@ -246,14 +275,7 @@ class SequenceFinder():
             end_list["end_genomic"].append(self.__data_prot.iloc[i]["end_genomic_complete"][-1])
         self.__data_prot = self.__data_prot.join(DataFrame(start_list))
         self.__data_prot = self.__data_prot.join(DataFrame(end_list))
-        self.__data_prot.to_csv("data_filteredfinal.tsv", sep = "\t", index = False)
-
-        
-     
-        
-
-
-
+        # self.__data_prot.to_csv("data_filteredfinal.tsv", sep = "\t", index = False)
 
 if __name__ == "__main__":
     df_prot = read_csv("data_filtered.tsv", sep = "\t", header = 0)

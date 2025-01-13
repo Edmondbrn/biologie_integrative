@@ -10,7 +10,7 @@ from io import StringIO
 from PyQt6.QtGui import QIcon
 from .app_utils import show_alert, load_stylesheet
 from ..Back.SequenceFinder import SequenceFinder
-from Back.SequenceFinder_lazy import SequenceFinderLazy
+from ..Back.SequenceFinder_lazy import SequenceFinderLazy
 from pandas import read_csv
 from ..GLOBAL import QSS_PATH
 
@@ -36,20 +36,10 @@ class RNAtoDNAWindow(QDialog):
         self.create_input_file_section()
         self.create_output_section()
         self.create_validation_button()
-        self.create_output_console()
 
         # Ajout au layout principal
         self.setLayout(self.main_layout)
 
-    def create_output_console(self):
-        """
-        Console pour afficher les sorties.
-        """
-        self.console_output = QPlainTextEdit()
-        self.console_output.setReadOnly(True)
-        self.console_output.setPlaceholderText("Console output will appear here...")
-        self.main_layout.addWidget(self.console_output)
-        
     def create_input_file_section(self):
         """
         Section pour sélectionner le fichier d'entrée.
@@ -110,6 +100,7 @@ class RNAtoDNAWindow(QDialog):
         output_layout.addWidget(self.output_file_name)
 
         self.main_layout.addWidget(group_output)
+    
 
     def select_output_directory(self):
         """
@@ -154,16 +145,10 @@ class RNAtoDNAWindow(QDialog):
             # Initialiser l'objet SequenceFinder
             if self.choice_program.isChecked():
                 seq_finder = SequenceFinderLazy(data_prot=df_rna)
-            
+                seq_finder.start()  # Commence la conversion
             else:
                 seq_finder = SequenceFinder(data_prot=df_rna)
-
-            # Intercepter les interactions utilisateur
-            self.redirect_user_input()
-
-            # Lancer la conversion avec `start()`
-            seq_finder.start()  # Commence la conversion
-
+                seq_finder.start()
             # Enregistrez le fichier résultant dans le répertoire de sortie
             output_path = os.path.join(self.output_directory, output_name)
             seq_finder.getDataProt().to_csv(output_path, sep="\t", index=False)
@@ -171,27 +156,5 @@ class RNAtoDNAWindow(QDialog):
             show_alert("Info", f"RNA has been successfully converted to DNA.\nOutput saved at: {output_path}")
         except Exception as e:
             show_alert("Error", f"An error occurred during conversion: {str(e)}")
-        finally:
-            # Mettre à jour la console avec les sorties
-            self.update_console_output()
-    
-    def redirect_user_input(self):
-        """
-        Redirige les appels `input()` pour qu'ils utilisent une boîte de dialogue graphique.
-        """
-        original_input = input
 
-        def input_override(prompt=""):
-            text, ok = QInputDialog.getText(self, "User Input Required", prompt)
-            if ok and text:
-                return text
-            else:
-                raise Exception("User cancelled the input dialog.")
-
-        sys.modules['builtins'].input = input_override
-
-    def update_console_output(self):
-        """
-        Met à jour la console graphique avec le contenu de stdout.
-        """
-        self.console_output.setPlainText(self.stdout_buffer.getvalue())
+ 

@@ -169,7 +169,7 @@ class SequenceFinderLazy():
         self.__data_prot["end_genomic"] = end_list
 
         # Sauvegarde du fichier
-        self.__data_prot.to_csv("data_filteredfinal3.tsv", sep="\t", index=False)
+        # self.__data_prot.to_csv("data_filteredfinal3.tsv", sep="\t", index=False)
      
 if __name__ == "__main__":
     df_prot = read_csv("/home/edmond/Documents/GB5/biologie_integrative/src/Ressources/data/FMRP_Binding_sites_mouse_Maurin_NAR_2014_merged.tsv", sep = "\t", header = 0)

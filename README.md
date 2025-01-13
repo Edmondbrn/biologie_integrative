@@ -2,7 +2,7 @@
 # RepostionX
 <img src="src/Ressources/Icones/fugue-icons-3.5.6/icons/BI_logo.png" alt="BI Logo" width="200">
 
-RepositionX is a `python3` free and opensource software wich allow you to compute distances between two sites on RNA or DNA. RepositionX is a final student year project at Polytech Nice-Sophia bio-engineering school in partnership with the labaratory IPMC memeber of the CNRS.
+RepositionX is a `python3` free and opensource software wich allow you to compute distances between two sites on RNA or DNA. RepositionX is a final student year project at Polytech Nice-Sophia bio-engineering school in partnership with the laboratory IPMC member of the CNRS.
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 [![python](https://img.shields.io/badge/Python-3.10.15-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
@@ -24,11 +24,11 @@ Or
     
 
 - Windows: 
-There is a .exe file which launch the project. But you can also use the .bat file which will install all the python dependencies and run the program.
+There is a .exe file which launchs the project. But you can also use the .bat file which will install all the python dependencies and run the program.
 
 
 - Linux:
-The project contains a Anaconda environment file. You can install the virtual environement with th command :
+The project contains a Anaconda environment file. You can install the virtual environement with the command :
 
 ```bash
   conda env create -f env.yml
@@ -55,7 +55,7 @@ After the building you can run the docker with:
 bash boot_docker.sh
 ```
 
-Note that if you want to get back the ouput file of the program, you wille have to mount your output repository inside the docker. See the commented line inside boot_docker.
+Note that if you want to get back the ouput file of the program, you will have to mount your output repository inside the docker. See the commented line inside boot_docker.sh.
 
 
     
@@ -65,9 +65,9 @@ Note that if you want to get back the ouput file of the program, you wille have 
 - Convert NCBI transcript IDs into Ensembl IDs
 - Download and load specific GTF files from Ensembl
 - Convert mRNA coordinates into DNA coordinates
-- Filter and restructure Rmats ouput files
+- Filter and restructure Rmat ouput files
 - Compute DNA distances and mRNA distances
-- Visualise protein fixation sites ont raw RNA
+- Visualise protein fixation sites on raw RNA
 
 
 ## Documentation
@@ -81,26 +81,26 @@ When you start the program, a window like this will open. From this window you c
 
 - Convert NCBI transcript IDs into Ensembl IDs
 
-This feature is destined to convert NCBI transcript identifiers into Ensembl identifiers. To do that, you have to load the dataset with the identifiers inside the `refseq`column. If there is no `refseq`column, the software will throw an error. Note that the conversion give only one Ensembl equivalent identifiers, if you want a precise equivalent, you will have to change it yourself.
+This feature is destined to convert NCBI transcript identifiers into Ensembl identifiers. To do that, you have to load the dataset with the identifiers inside the `refseq`column. If there is no `refseq`column, the software will throw an error. Note that the conversion gives only one Ensembl equivalent identifier, if you want a precise equivalent, you will have to change it yourself.
 
 - Parsing Rmats
 
-Inside the `Actions` menu, you can click on the `Parsing Rmats`submenu. It will ask you the location of the directory where Rmats files are stored. Please, as normal Rmats output, DO NOT change the default CSV separator (\t), else the program will throw an error. An info box will warn you when the conversion will be finished (almost instantly)
+Inside the `Actions` menu, you can click on the `Parsing Rmats`submenu. It will ask you the location of the directory where Rmats files are stored. Please, as normal Rmats outputs, DO NOT change the default CSV separator (\t), else the program will throw an error. An info box will warn you when the conversion will be finished (almost instantly)
 
 - Convert mRNA to DNA
 
-Inside the `Actions`menu, you can click on the `Convert mRNA to DNA`submenu. You will have this type of window:
+Inside the `Actions` menu, you can click on the `Convert mRNA to DNA` submenu. You will have this type of window:
 
 <img src="src/Ressources/readme_data/convert_mRNA_DNA.png" alt="home" width="600">
 
-So, the software will ask you the path to the datasets which contains the coordinates to translate inton DNA ones and the path for the output datasets. Note that your dataset must repsect some constraints:
+So, the software will ask you the path to the datasets which contains the coordinates to translate into DNA ones and the path for the output datasets. Note that your dataset must repsect some constraints:
 
- - ensembl_id column containing the ensemble transcript ID of the everything
+ - ensembl_id column containing the ensemble transcript ID of the event
  - seq column for the fixation sequence on RNA if you have it
- - start_ensembl for the 1st coordinate on the mRNA
- - end_ensembl for the 2nd coordinates on the mRNA
+ - start for the 1st coordinate on the mRNA
+ - end for the 2nd coordinates on the mRNA
 
-Note that the software will ask you if you need the fixation sequences. If you don't and directly have the mRNA coordinates, please select the option. If you only have the fixation sequence on the mRNA, don't choose this option
+Note that the software will ask you if you need the fixation sequence. If you don't and directly have the mRNA coordinates, please select the option. If you only have the fixation sequence on the mRNA, don't choose this option. The program will align the sequence to get itself the start and end coordinates.
 
 
 - Compute Distances
@@ -119,24 +119,24 @@ After your choice, a window of this style will open:
 
 <img src="src/Ressources/readme_data/distance_menu1.png" alt="home" width="400">
 
-You have a section to load the reference datasets. The calculations will be based on these coordinates (ref_coordinates - 2nd_coordinates). Also for the comparaison datasets. You can load excel and CSV files. Note that for CSV files, we will scan the file to set the separator characater. If it fails, please select yourself the character.
+You have a section to load the reference dataset. The calculations will be based on these coordinates (ref_coordinates - 2nd_coordinates). You can load excel and CSV files. Note that for CSV files, we will scan the file to set the separator characater. If it fails, please select yourself the character.
 
 **Datasets have to respect some rules:**
 - Reference dataset has to contain the `GeneID`column with Ensembl gene identifyers for the element and `ensembl_id` column which contains the Ensembl transcript identifyer.
 - Comparison dataset has to contain the `GeneID`column with Ensembl gene identifyers for the element
 
 
-After that you have to select an output directory ans an output file name. If nothing is given, the output files will be in the root prooject with just `dna`or `rna`prefix. If everythin is done, you can click and `Validate`.
+After that, you have to select an output directory and an output file name. If nothing is given, the output file will be in the root prooject with just `dna`or `rna` prefix. If everything is done, you can click and `Validate`.
 
 <img src="src/Ressources/readme_data/distance_menu2.png" alt="home" width="600">
 
-Some elements will be added to the window. Now you can select the columns to compare with the combo boxes. If you have chosen a specific splicing type or all, the comparison coluns will be automaticaly added.
+Some elements will be added to the window. Now you can select the columns to compare with the combo boxes. If you have chosen a specific splicing type or all, the comparison colunms will be automaticaly added.
 
 **Please note that you have to specify a column with __only__ numeric values. Remove strings or ambiguous values. Otherwise, you will have an error message.**
 
 You can add all the combinaison you want, but not twice the same (Warning message if this case). If you have done a mistake, you can remove the last added combinaison with the red button. Finally you can launch the computation with the `Compare` button. A progress bar will be displayed to warn you about the calculation progress. A little moment can occured before the starting of calculation because of compilation of some functions. You can now check your results files !
 
-**Note that the calculations can be parallelised by activating the multiprocessing. A spinbox will appeare to ask you how many processes you want. This is highly not recommended an the .exe version.**
+**Note that the calculations can be parallelised by activating the multiprocessing. A spinbox will appear to ask you how many processes you want. This is highly not recommended on the .exe version.**
 
 
 - Localisation visualisation
