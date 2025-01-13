@@ -3,13 +3,15 @@ from PyQt6.QtWidgets import QLabel, QPlainTextEdit, QPushButton, QHBoxLayout
 
 from .manual_distances_window import ManualDistancesWindow
 from .app_utils import show_alert
+from PyQt6.QtCore import Qt, pyqtSignal
 
 from ..GLOBAL import *
 
 
 class SplicingDistancesWindow(ManualDistancesWindow):
-    
-    def __init__(self, splice_type : str, reference_file, genomic_file):
+    data_signal = pyqtSignal(list)
+    name_signal = pyqtSignal(list)
+    def __init__(self, splice_type : str, reference_file, genomic_file):    
         super().__init__(reference_file, genomic_file)
         self.splice = splice_type
         self.couple = []

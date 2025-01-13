@@ -28,7 +28,7 @@ class ManualDistancesWindow(QDialog):
         self.df_ref, self.df_second = reference_file, genomic_file
         self.file_dict = {"reference": None, "second": None}
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
-        self.species, self.release = self.release_reader()
+        self.species, self.release = self.release_reader(RELEASE_FILE_PATH)
         self.release = int(self.release)
 
         self.main_layout = QVBoxLayout(self)

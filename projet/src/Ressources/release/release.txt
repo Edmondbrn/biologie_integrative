@@ -1,2 +1,2 @@
-danio_rerio
-80
+mus_musculus
+102

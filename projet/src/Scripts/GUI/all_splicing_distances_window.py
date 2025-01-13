@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
     QLabel, QPlainTextEdit, QComboBox, QFileDialog, QProgressBar, QCheckBox
@@ -16,7 +16,8 @@ from ..Back.distances_utils import FilterDataProt
 from ..GLOBAL import *
 
 class AllSplicingDistancesWindow(ManualDistancesWindow):
-    
+    data_signal = pyqtSignal(list)
+    name_signal = pyqtSignal(list)
     def __init__(self, splice_type : str, reference_file, genomic_file):
         super().__init__(reference_file, genomic_file)
         self.splice = splice_type
@@ -256,7 +257,9 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         self.layout().addWidget(self.group_progress)
 
     def release_reader(self, file_path):
+        lines = []
         with open(file_path, "r") as file:
-            lines = [file[0], file[1]]
+            for line in file:
+                lines.append(line.strip())
             return lines
     

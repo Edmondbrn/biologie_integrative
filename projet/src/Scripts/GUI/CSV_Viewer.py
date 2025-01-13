@@ -95,7 +95,6 @@ class CSVViewer(QWidget):
             show_alert("Error", "Please select cells with integer values except the transcript ID")
             return
         
-        # TODO à changer pour les versions des génoms et les espèces
         specy = self.species
         release = self.release
         try:
@@ -114,5 +113,8 @@ class CSVViewer(QWidget):
             return
         
     def release_reader(self, file_path):
+        lines = []
         with open(file_path, "r") as file:
-            return file[0], file[1]
+            for line in file:
+                lines.append(line.strip())
+            return lines

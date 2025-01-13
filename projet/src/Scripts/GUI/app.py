@@ -20,7 +20,7 @@ import sys
 import pandas as pd
 import pyensembl as pb
 import csv
-import importlib
+import os
 
 from .CSV_Viewer import CSVViewer
 from .EnsemblDialog import EnsemblDialog
@@ -35,7 +35,6 @@ class MainWindow(QMainWindow):
         self.output_file = None 
         self.species, self.release = self.release_reader(GLOBAL.RELEASE_FILE_PATH)
         self.release = int(self.release)
-        print(f"Release: {self.release}, Species: {self.species}")
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
 
@@ -273,10 +272,14 @@ class MainWindow(QMainWindow):
     
     def onCalculateDistances(self, splice_type, reference_file, genomic_file):
         dialog = SplicingDistancesWindow(splice_type, reference_file, genomic_file)
+        dialog.data_signal.connect(self.update_files)  # Connecter le signal au slot
+        dialog.name_signal.connect(self.update_file_names)  # Connecter le signal des noms au slot
         dialog.exec()
 
     def onCalculateAllDistances(self, splicing, reference_file, genomic_file):
         dialog = AllSplicingDistancesWindow(splicing, reference_file, genomic_file)
+        dialog.data_signal.connect(self.update_files)  # Connecter le signal au slot
+        dialog.name_signal.connect(self.update_file_names)  # Connecter le signal des noms au slot
         dialog.exec()
 
     def dynamic_menues(self, toolbar):
