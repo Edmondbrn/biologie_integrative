@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon(f"{GLOBAL.ICON_PATH}BI_logo.png"))
 
         # Configure the window to start maximized
-        self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
+        # self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
 
         self.setStyleSheet(load_stylesheet(GLOBAL.QSS_PATH))
 

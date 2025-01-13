@@ -28,7 +28,7 @@ There is a .exe file which launchs the project. But you can also use the .bat fi
 
 
 - Linux:
-The project contains a Anaconda environment file. You can install the virtual environement with the command :
+The project contains an Anaconda environment file. You can install the virtual environement with the command :
 
 ```bash
   conda env create -f env.yml
@@ -55,7 +55,7 @@ After the building you can run the docker with:
 bash boot_docker.sh
 ```
 
-Note that if you want to get back the ouput file of the program, you will have to mount your output repository inside the docker. See the commented line inside boot_docker.sh.
+Note that if you want to retrieve the ouput file of the program, you will have to mount your output repository inside the docker. See the commented line inside boot_docker.sh.
 
 
     
