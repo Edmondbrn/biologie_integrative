@@ -28,6 +28,8 @@ class ManualDistancesWindow(QDialog):
         self.df_ref, self.df_second = reference_file, genomic_file
         self.file_dict = {"reference": None, "second": None}
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
+        self.species, self.release = self.release_reader(RELEASE_FILE_PATH)
+        self.release = int(self.release)
 
         self.main_layout = QVBoxLayout(self)
 
@@ -349,8 +351,8 @@ class ManualDistancesWindow(QDialog):
                                     df_second = self.df_second, 
                                     comparison_couples = comparison_list,
                                     output_dir = self.output_directory.text().split(":", maxsplit=1)[1].strip(), 
-                                    release = RELEASE,
-                                    species = SPECY,
+                                    release = self.release,
+                                    species = self.species,
                                     file_basename = self.file_name_space.toPlainText() + "_" +splice_name)
             
             self.worker.progress_changed.connect(self.updateProgressBar)
@@ -379,8 +381,8 @@ class ManualDistancesWindow(QDialog):
                                                 df_splicing=self.df_second,
                                                 comparison_couples=comparison_list,
                                                 n_processes=self.thread_counter.value(),
-                                                release=RELEASE,
-                                                species=SPECY,
+                                                release=self.release,
+                                                species=self.species,
                                                 output_dir = self.output_directory.text().split(":")[1][1:],
                                                 file_basename=self.file_name_space.toPlainText() + "_" + splice_name)
 
@@ -419,6 +421,13 @@ class ManualDistancesWindow(QDialog):
             self.group_progress.deleteLater()
             self.group_progress = None
             show_alert("Info", "Calculation finished")
+
+    def release_reader(self, file_path):
+        lines = []
+        with open(file_path, "r") as file:
+            for line in file:
+                lines.append(line.strip())
+            return lines
     
     def detect_separator(self, file_path):
         """

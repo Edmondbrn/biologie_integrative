@@ -10,7 +10,7 @@ class EnsemblDialog(QDialog):
         super().__init__()
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
         self.setWindowTitle("Sélection de l'espèce et release Ensembl")
-        self.resize(300, 100)
+        self.resize(400, 200)  # Augmenter la taille de la fenêtre
         layout = QVBoxLayout(self)
 
         # Champ pour l'espèce
@@ -34,6 +34,8 @@ class EnsemblDialog(QDialog):
         btn_ok.clicked.connect(self.on_validate)
         layout.addWidget(btn_ok)
 
+        self.download_thread = None  # Initialiser le thread de téléchargement
+
     def on_validate(self):
         species = self.species_input.text().strip()
         release = self.release_input.text().strip()
@@ -47,36 +49,41 @@ class EnsemblDialog(QDialog):
         except ValueError:
             QMessageBox.warning(self, "Input Error", "Release must be an integer.")
             return
-
-        if not self.is_valid_species(species):
-            QMessageBox.warning(self, "Input Error", f"Species '{species}' is not supported.")
-            return
-
-        # Mettre à jour les variables globales
-        global SPECIES, RELEASE
-        SPECIES = species
-        RELEASE = release
+        
+        # mettre à jour le fichier
+        self.release_writer(RELEASE_FILE_PATH, species, release)
 
         # Créer et afficher la barre de progression
-        progress_bar = QProgressBar(self)
-        progress_bar.setRange(0, 100)
-        progress_bar.show()
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.show()
 
         # Lancer le téléchargement
-        download_ensembl_release(species, release, progress_bar)
+        self.download_thread = DownloadThread(species, release)
+        self.download_thread.progress.connect(self.progress_bar.setValue)
+        self.download_thread.finished.connect(self.on_download_finished)
+        self.download_thread.error.connect(self.on_download_error)
+        self.download_thread.start()
 
+    def on_download_finished(self):
+        QMessageBox.information(self, "Download Complete", "Download and indexing complete.")
         self.accept()  # Ferme la boîte de dialogue
 
-    def is_valid_species(self, species):
-        # Vérifie si l'espèce est supportée par pyensembl
-        try:
-            pb.EnsemblRelease(release=75, species=species)  # Utilise une release existante pour vérifier
-            return True
-        except ValueError:
-            return False
+    def on_download_error(self, error):
+        QMessageBox.critical(self, "Download Error", f"Failed to download Ensembl release: {error}")
+
+    def closeEvent(self, event):
+        if self.download_thread and self.download_thread.isRunning():
+            self.download_thread.quit()
+            self.download_thread.wait()
+        event.accept()
 
     def get_values(self):
         return self.species_input.text(), self.release_input.text()
+    
+    def release_writer(self, file_path, species, release):
+        with open(file_path, "w") as file:
+            file.write(f"{species}\n{release}")
     
     
 class DownloadThread(QThread):
@@ -92,7 +99,7 @@ class DownloadThread(QThread):
     def run(self):
         try:
             ensembl_release = pb.EnsemblRelease(release=int(self.release), species=self.species)
-            ensembl_release.download(progress_callback=self.update_progress)
+            ensembl_release.download()
             ensembl_release.index()
             self.finished.emit()
         except Exception as e:

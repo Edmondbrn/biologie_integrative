@@ -26,6 +26,8 @@ class CSVViewer(QWidget):
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
         self.setWindowTitle(file_name)
         self.setGeometry(100, 100, 800, 600)
+        self.species, self.release = self.release_reader(RELEASE_FILE_PATH)
+        self.release = int(self.release)
 
         layout = QVBoxLayout(self)
         self.tableWidget = QTableWidget()
@@ -93,9 +95,8 @@ class CSVViewer(QWidget):
             show_alert("Error", "Please select cells with integer values except the transcript ID")
             return
         
-        # TODO à changer pour les versions des génoms et les espèces
-        specy = SPECY
-        release = RELEASE
+        specy = self.species
+        release = self.release
         try:
             bdd = pb.EnsemblRelease(species = specy, release = release)
             transcript : pb.Transcript = bdd.transcript_by_id(transcript_id)
@@ -110,3 +111,10 @@ class CSVViewer(QWidget):
         except Exception as e:
             show_alert("Error", f"An error occured: {e}")
             return
+        
+    def release_reader(self, file_path):
+        lines = []
+        with open(file_path, "r") as file:
+            for line in file:
+                lines.append(line.strip())
+            return lines
