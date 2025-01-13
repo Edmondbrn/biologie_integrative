@@ -1,2 +1,2 @@
-mus_musculus
+zebra
 102

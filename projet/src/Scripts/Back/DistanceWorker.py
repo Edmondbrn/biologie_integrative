@@ -125,6 +125,7 @@ class ParallelDistancesWorker(QThread):
         self.processes = n_processes
         self.release = release
         self.species = species
+        self.release = int(self.release)
         self.output_dir = output_dir
         self.file_basename = file_basename
 

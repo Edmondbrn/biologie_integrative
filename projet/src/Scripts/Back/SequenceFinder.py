@@ -6,7 +6,8 @@ import regex
 NB_PROCESS = 4
 ENSEMBL_NAME = "ensembl_id"
 SEQUENCE_NAME = "seq"
-RELEASE = 102
+
+from ..GLOBAL import *
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -36,6 +37,8 @@ class SequenceFinder():
         self.__bdd = pb.EnsemblRelease(RELEASE, species=self.__species) # version 102 pour avoir l'assemblage 38 de la souris
         self.__bdd.download()
         self.__bdd.index()
+        self.species, self.release = self.release_reader(RELEASE_FILE_PATH)
+        self.release = int(self.release)
 
     
     def setAttribute(self, attibute : str, value):
@@ -242,6 +245,12 @@ class SequenceFinder():
         self.__data_prot = self.__data_prot.join(DataFrame(end_list))
         self.__data_prot.to_csv("data_filteredfinal2.tsv", sep = "\t", index = False)
 
+    def release_reader(self, file_path):
+        lines = []
+        with open(file_path, "r") as file:
+            for line in file:
+                lines.append(line.strip())
+            return lines
         
      
         

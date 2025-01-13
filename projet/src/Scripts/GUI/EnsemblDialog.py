@@ -1,16 +1,24 @@
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, 
-QApplication, QMessageBox, QProgressBar)
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QApplication, QMessageBox, QProgressBar
+)
 from PyQt6.QtCore import pyqtSignal, QThread
 from PyQt6.QtGui import QIcon
 import pyensembl as pb
+import sys
+import os
+
 from ..GLOBAL import *
+
 
 class EnsemblDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
         self.setWindowTitle("Sélection de l'espèce et release Ensembl")
-        self.resize(400, 200)  # Augmenter la taille de la fenêtre
+        self.resize(400, 200)
+
+        # Layout principal
         layout = QVBoxLayout(self)
 
         # Champ pour l'espèce
@@ -29,12 +37,18 @@ class EnsemblDialog(QDialog):
         release_layout.addWidget(self.release_input)
         layout.addLayout(release_layout)
 
+        # Barre de progression
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setVisible(False)
+        layout.addWidget(self.progress_bar)
+
         # Bouton de validation
         btn_ok = QPushButton("Validate")
         btn_ok.clicked.connect(self.on_validate)
         layout.addWidget(btn_ok)
 
-        self.download_thread = None  # Initialiser le thread de téléchargement
+        self.download_thread = None
 
     def on_validate(self):
         species = self.species_input.text().strip()
@@ -49,16 +63,14 @@ class EnsemblDialog(QDialog):
         except ValueError:
             QMessageBox.warning(self, "Input Error", "Release must be an integer.")
             return
-        
-        # mettre à jour le fichier
+        # Écriture des informations dans le fichier
         self.release_writer(RELEASE_FILE_PATH, species, release)
 
-        # Créer et afficher la barre de progression
-        self.progress_bar = QProgressBar(self)
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.show()
+        # Configurer la barre de progression
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
 
-        # Lancer le téléchargement
+        # Lancer le téléchargement dans un thread séparé
         self.download_thread = DownloadThread(species, release)
         self.download_thread.progress.connect(self.progress_bar.setValue)
         self.download_thread.finished.connect(self.on_download_finished)
@@ -67,25 +79,21 @@ class EnsemblDialog(QDialog):
 
     def on_download_finished(self):
         QMessageBox.information(self, "Download Complete", "Download and indexing complete.")
+        self.progress_bar.setValue(100)
         self.accept()  # Ferme la boîte de dialogue
 
     def on_download_error(self, error):
         QMessageBox.critical(self, "Download Error", f"Failed to download Ensembl release: {error}")
+        self.progress_bar.setVisible(False)
 
-    def closeEvent(self, event):
-        if self.download_thread and self.download_thread.isRunning():
-            self.download_thread.quit()
-            self.download_thread.wait()
-        event.accept()
-
-    def get_values(self):
-        return self.species_input.text(), self.release_input.text()
-    
     def release_writer(self, file_path, species, release):
         with open(file_path, "w") as file:
             file.write(f"{species}\n{release}")
-    
-    
+
+    def get_values(self):
+        return self.species_input.text(), self.release_input.text()
+
+
 class DownloadThread(QThread):
     progress = pyqtSignal(int)
     finished = pyqtSignal()
@@ -100,13 +108,14 @@ class DownloadThread(QThread):
         try:
             ensembl_release = pb.EnsemblRelease(release=int(self.release), species=self.species)
             ensembl_release.download()
+            for i in range(1, 101, 10):  # Simulation de la progression
+                self.msleep(200)  # Pause pour simuler un calcul
+                self.progress.emit(i)
             ensembl_release.index()
             self.finished.emit()
         except Exception as e:
             self.error.emit(str(e))
 
-    def update_progress(self, progress):
-        self.progress.emit(progress)
 
 def ask_ensembl_info():
     dialog = EnsemblDialog()
@@ -116,16 +125,7 @@ def ask_ensembl_info():
     return None, None
 
 
-def download_ensembl_release(species, release, progress_bar):
-    thread = DownloadThread(species, release)
-    thread.progress.connect(progress_bar.setValue)
-    thread.finished.connect(lambda: QMessageBox.information(None, "Download Complete", "Download and indexing complete."))
-    thread.error.connect(lambda error: QMessageBox.critical(None, "Download Error", f"Failed to download Ensembl release: {error}"))
-    thread.start()
-
-
 if __name__ == "__main__":
-    import sys
     app = QApplication(sys.argv)
     species, release = ask_ensembl_info()
     if species and release:

@@ -22,6 +22,7 @@ import pyensembl as pb
 import csv
 import os
 
+from .ID_convertor import IDConversionDialog
 from .CSV_Viewer import CSVViewer
 from .EnsemblDialog import EnsemblDialog
 
@@ -100,7 +101,7 @@ class MainWindow(QMainWindow):
         #Bouton pour convertir les ID d'ensembl à NCBI
         button_convert_ID = QAction(QIcon(f"{GLOBAL.ICON_PATH}address-book-blue.png"), "Change NCBI IDs to Ensembl IDs", self)
         button_convert_ID.setStatusTip("Change NCBI IDs to Ensembl IDs")
-        button_convert_ID.triggered.connect(lambda: self.file_loader_ID())
+        button_convert_ID.triggered.connect(lambda: self.ID_loader())
 
         button_change_release = QAction(QIcon(f"{GLOBAL.ICON_PATH}arrow-circle-double.png"), "Change release and species", self)
         button_change_release.setStatusTip("Change the release and species of the ensembl genome reference")
@@ -160,7 +161,6 @@ class MainWindow(QMainWindow):
         dialog = EnsemblDialog()
         if dialog.exec():  
             self.species, self.release = self.release_reader(GLOBAL.RELEASE_FILE_PATH)
-            print(f"New values - Release: {self.release}, Species: {self.species}")
             self.update_release_menu()
 
     def onManualDistances(self, reference_file=None, genomic_file=None):
@@ -183,27 +183,31 @@ class MainWindow(QMainWindow):
             self.file_path = file_path
             self.file_loader()
 
+    def ID_loader(self):
+        dialog = IDConversionDialog()
+        dialog.exec()
+
     def open_output_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "File Explorer", "", "CSV Files (*.csv)")
         if file_path:
             self.file_path_output = file_path
             self.file_loader_output()
-    
-    def file_loader_ID(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "File Explorer", "", "All Files (*);;CSV Files (*.csv)")
-        if file_path:
-            add_ensembl_ids(file_path)
+        
 
     def file_loader_output(self):
         if self.file_path_output:
             if self.output_file is not None:
                 show_alert("Error", "A genomic file has already been loaded \n Please delete it before loading another file")
             else:
-                sep=self.detect_separator(self.file_path_output)
-                index_column=self.index_column_detector(self.file_path_output, sep)
-                self.output_file = pd.read_csv(self.file_path_output, sep=sep, index_col=index_column)
-                self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
-                self.output_name = os.path.basename(self.file_path_output)
+                if self.file_path_output.endswith(".csv"):
+                    sep=self.detect_separator(self.file_path_output)
+                    index_column=self.index_column_detector(self.file_path_output, sep)
+                    self.output_file = pd.read_csv(self.file_path_output, sep=sep, index_col=index_column)
+                    self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
+                    self.output_name = os.path.basename(self.file_path_output)
+                else:
+                    show_alert("Error", "The file format is not supported")
+                    return
 
     def index_column_detector(self, file_path, sep):
         file = pd.read_csv(file_path, sep=sep, nrows=10)
@@ -230,6 +234,9 @@ class MainWindow(QMainWindow):
             elif self.file_path.endswith(".xlsx"):
                 index_column = self.index_column_detector_excel(self.file_path)
                 file_object = pd.read_excel(self.file_path, index_col=index_column)
+            else:
+                show_alert("Error", "The file format is not supported")
+                return
             verification_column = 'GeneID'
             if verification_column == file_object.columns[0]:
                 if self.genomic_file is not None:
