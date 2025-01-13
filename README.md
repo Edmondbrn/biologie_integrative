@@ -1,6 +1,6 @@
 
 # RepostionX
-<div style="display: flex; align-items: center;">
+<div style="display: flex; align-items: center; flex-direction :row;">
   <div style="flex: 1;">
     RepositionX is a `python3` free and opensource software which allows you to compute distances between two sites on RNA or DNA. RepositionX is a final student year project at Polytech Nice-Sophia bio-engineering school in partnership with the laboratory IPMC member of the CNRS.
   </div>
