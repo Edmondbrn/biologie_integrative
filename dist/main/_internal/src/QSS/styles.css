@@ -1,0 +1,131 @@
+QMainWindow {
+    background-color: #dddada;
+    color : black;
+}
+
+QToolBar{
+    background-color: #302b2b;
+    border-style: solid;
+    border-width : 2px;
+    border-radius: 10px;
+    color :  white;
+}
+
+QMenuBar{
+    background-color: #302b2b;
+    border-style: solid;
+    border-width : 2px;
+    color :  white;
+}
+
+QDialog {
+    background-color: #dddada;
+    color : black;
+}
+
+QLabel{
+    color : black;
+}
+
+QGroupBox{
+    background-color: #a1a1a1;
+    border-style: solid;
+    border-width : 2px;
+    border-radius: 10px;
+}
+
+QPlainTextEdit{
+    background-color: #4e4b4b;
+    border-style: solid;
+    border-width : 2px;
+    border-radius: 10px;
+}
+
+QPushButton {
+    border-radius: 10px;  /* Utilisez border-radius pour arrondir les coins */
+    background-color: #4e4747;
+    color: white;  /* Ajoutez une couleur de texte pour plus de visibilité */
+    padding: 5px;  /* Ajoutez du padding pour agrandir les boutons */
+    border-color: #a5a3a3;
+    border-width: 1px;
+    margin : 5px;
+    border-style: solid;
+}
+
+QPushButton:hover{
+    background-color: rgba(66, 242, 255, 0.596);
+}
+
+
+
+QPushButton#validate_button {
+    background-color: #267b8a;
+    padding: 10px;
+}
+
+QPushButton#validate_button:hover{
+    background-color: #52a0df;
+}
+
+QPushButton#compare_button {
+    background-color: #267b8a;
+    padding: 10px;
+}
+
+QPushButton#compare_button:hover{
+    background-color: #52a0df;
+}
+
+QPushButton#remove_comparison_button{
+    background-color: #d69696;
+    padding: 10px;
+}
+
+QPushButton#remove_comparison_button:hover{
+    background-color: #ff0000;
+}
+
+QPushButton#add_comparison_button{
+    background-color: #96d6a7;
+    padding: 10px;
+}
+
+QPushButton#add_comparison_button:hover{
+    background-color: #00ff00;
+}
+
+QPushButton#logo {
+    border: none;
+    background-color: none;
+}
+QCheckBox {
+    font-weight: bold;
+}
+
+QCheckBox::indicator:hover {
+    border: 2px solid lightblue;
+}
+
+QProgressBar {
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #333;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: #267b8a; /* Couleur de la barre de progression */
+    width: 20px;
+}
+
+
+QComboBox{
+    background-color: #4e4747;
+    border-style: solid;
+    border-width : 2px;
+    border-radius: 10px;
+}
+
+QComboBox:hover{
+    background-color: #4e4b4b;
+}
