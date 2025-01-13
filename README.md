@@ -77,7 +77,14 @@ This part will be dedicated to explain how to use the software.
 - Home view
 <img src="src/Ressources/readme_data/home.png" alt="home" width="400">
 
-When you start the program, a window like this will open. From this window you can load datasets from the menu `File`, or from the table icon. If you don't want to load a datasets directly, you can click on the `Actions` menu to get access to the features.
+When you start the program, a window like this will open. From this window you can load datasets from the menu `File`, or from the table icon. 
+If you choose this way to load files, you have to know the order and name of the columns, as the automated detector will classify it as a "compared file" if the first column is "GeneID", and as a "reference file" otherwise. 
+
+You may bypass this by clicking on the `Actions` menu to open a window where you can upload your files however you choose. 
+
+Another button `load ooutput` allows you to specifically load .csv files to view them directly in the software.
+
+Note that you may load only one file for those 3 categories.
 
 - Convert NCBI transcript IDs into Ensembl IDs
 
@@ -85,7 +92,7 @@ This feature is destined to convert NCBI transcript identifiers into Ensembl ide
 
 - Parsing Rmats
 
-Inside the `Actions` menu, you can click on the `Parsing Rmats`submenu. It will ask you the location of the directory where Rmats files are stored. Please, as normal Rmats outputs, DO NOT change the default CSV separator (\t), else the program will throw an error. An info box will warn you when the conversion will be finished (almost instantly)
+Inside the `Actions` menu, you can click on the `Parsing Rmats`submenu. It will ask you the location of the directory where the Rmats files are stored. <ins> Beware that the programm doesn't support any other separator than (\t) for this particular function and will crash </ins>. An information window will tell you when the conversion is finished (almost instantly)
 
 - Convert mRNA to DNA
 
@@ -95,10 +102,10 @@ Inside the `Actions` menu, you can click on the `Convert mRNA to DNA` submenu. Y
 
 So, the software will ask you the path to the datasets which contains the coordinates to translate into DNA ones and the path for the output datasets. Note that your dataset must repsect some constraints:
 
- - ensembl_id column containing the ensemble transcript ID of the event
- - seq column for the fixation sequence on RNA if you have it
- - start for the 1st coordinate on the mRNA
- - end for the 2nd coordinates on the mRNA
+ - "ensembl_id" column containing the ensemble transcript ID of the event
+ - "seq" column for the fixation sequence on RNA if you have it
+ - "start" for the 1st coordinate on the mRNA
+ - "end" for the 2nd coordinates on the mRNA
 
 Note that the software will ask you if you need the fixation sequence. If you don't and directly have the mRNA coordinates, please select the option. If you only have the fixation sequence on the mRNA, don't choose this option. The program will align the sequence to get itself the start and end coordinates.
 
@@ -115,7 +122,7 @@ This menu will trigger various sub-menus to let you choose what type of calculat
     6. All types of alternative splicing sites
     7. Manual mode
 
-After your choice, a window of this style will open:
+After your choice, a window of the following appearance will open:
 
 <img src="src/Ressources/readme_data/distance_menu1.png" alt="home" width="400">
 
