@@ -102,7 +102,7 @@ You have a section to load the reference datasets. The calculations will be base
 - Comparison dataset has to contain the `GeneID`column with Ensembl gene identifyers for the element
 
 
-After that you have to select an output directory ans an output file name. If nothing is given, the output files will be in the root prooject with just `dna`or `rna`prefix. If everythin is done, you can click and `Validate`.
+After that you have to select an output directory ans an output file name. If nothing is given, the output files will be in the root prooject with just `dna`or `rna`prefix. If everything is done, you can click and `Validate`.
 
 <img src="src/Ressources/readme_data/distance_menu2.png" alt="home" width="600">
 
