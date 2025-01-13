@@ -1,6 +1,3 @@
-RELEASE = 102
-SPECY = "mus_musculus"
-
 WINDOW_HEIGHT = 600
 WINDOW_WIDTH = 800
 
@@ -16,3 +13,4 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ICON_PATH = os.path.join(BASE_DIR, "Ressources", "Icones", "fugue-icons-3.5.6", "icons/")
 QSS_PATH = os.path.join(BASE_DIR, "QSS", "styles.css")
+RELEASE_FILE_PATH = os.path.join(BASE_DIR, "Ressources", "release", "release.txt")

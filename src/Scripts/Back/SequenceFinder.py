@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QLabel, QRadioBu
 NB_PROCESS = 4
 ENSEMBL_NAME = "ensembl_id"
 SEQUENCE_NAME = "seq"
-RELEASE = 102
-SPECIES = "mus_musculus"
+
+from ..GLOBAL import *
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -38,6 +38,8 @@ class SequenceFinder():
         self.__bdd = pb.EnsemblRelease(RELEASE, species=SPECIES) # version 102 pour avoir l'assemblage 38 de la souris
         self.__bdd.download()
         self.__bdd.index()
+        self.species, self.release = self.release_reader(RELEASE_FILE_PATH)
+        self.release = int(self.release)
 
     def getDataProt(self):
         return self.__data_prot
@@ -275,9 +277,22 @@ class SequenceFinder():
             end_list["end_genomic"].append(self.__data_prot.iloc[i]["end_genomic_complete"][-1])
         self.__data_prot = self.__data_prot.join(DataFrame(start_list))
         self.__data_prot = self.__data_prot.join(DataFrame(end_list))
-        # self.__data_prot.to_csv("data_filteredfinal.tsv", sep = "\t", index = False)
+        self.__data_prot.to_csv("data_filteredfinal2.tsv", sep = "\t", index = False)
+
+    def release_reader(self, file_path):
+        lines = []
+        with open(file_path, "r") as file:
+            for line in file:
+                lines.append(line.strip())
+            return lines
+        
+     
+        
+
+
+
 
 if __name__ == "__main__":
-    df_prot = read_csv("data_filtered.tsv", sep = "\t", header = 0)
+    df_prot = read_csv("/home/edmond/Documents/GB5/biologie_integrative/projet/src/Ressources/data/FMRP_Binding_sites_mouse_Maurin_NAR_2014_merged.tsv_converted", sep = "\t", header = 0)
     app = SequenceFinder(df_prot)
     app.start()

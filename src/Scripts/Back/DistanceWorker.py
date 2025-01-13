@@ -5,7 +5,6 @@ import numpy as np
 import os
 from .distances_utils import ComputeDistanceManuel_wrapper, parallel_start_manual, FilterDataProt, fill_rna_row
 
-
 class DistancesWorker(QThread):
     # On déclare les signaux dans la classe
     progress_changed = pyqtSignal(int)
@@ -126,6 +125,7 @@ class ParallelDistancesWorker(QThread):
         self.processes = n_processes
         self.release = release
         self.species = species
+        self.release = int(self.release)
         self.output_dir = output_dir
         self.file_basename = file_basename
 
