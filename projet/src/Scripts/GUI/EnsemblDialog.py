@@ -1,14 +1,16 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, 
 QApplication, QMessageBox, QProgressBar)
 from PyQt6.QtCore import pyqtSignal, QThread
+from PyQt6.QtGui import QIcon
 import pyensembl as pb
 from ..GLOBAL import *
 
 class EnsemblDialog(QDialog):
     def __init__(self):
         super().__init__()
+        self.setWindowIcon(QIcon(f"{ICON_PATH}BI_logo.png"))
         self.setWindowTitle("Sélection de l'espèce et release Ensembl")
-
+        self.resize(300, 100)
         layout = QVBoxLayout(self)
 
         # Champ pour l'espèce

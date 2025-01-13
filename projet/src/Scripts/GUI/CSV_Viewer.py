@@ -1,5 +1,3 @@
-from ..GLOBAL import ICON_PATH
-
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem
 from PyQt6.QtGui import QIcon
 
@@ -96,8 +94,8 @@ class CSVViewer(QWidget):
             return
         
         # TODO à changer pour les versions des génoms et les espèces
-        specy = "mus_musculus"
-        release = "102"
+        specy = SPECY
+        release = RELEASE
         try:
             bdd = pb.EnsemblRelease(species = specy, release = release)
             transcript : pb.Transcript = bdd.transcript_by_id(transcript_id)
