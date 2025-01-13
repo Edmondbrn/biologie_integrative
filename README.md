@@ -102,17 +102,28 @@ You have a section to load the reference datasets. The calculations will be base
 - Comparison dataset has to contain the `GeneID`column with Ensembl gene identifyers for the element
 
 
-After that you have to select an output directory ans an output file name. If nothing is given, the output files will be in the root prooject with just `dna`or `rna`prefix. If everything is done, you can click and `Validate`.
+After that you have to select an output directory ans an output file name. If nothing is given, the output files will be in the root prooject with just `dna`or `rna`prefix. If everythin is done, you can click and `Validate`.
 
-<img src="src/Ressources/readme_data/distance_menu2.png" alt="home" width="600">
+<img src="src/Ressources/readme_data/distance_menu2.png" alt="home" width="400">
 
 Some elements will be added to the window. Now you can select the columns to compare with the combo boxes. If you have chosen a specific splicing type or all, the comparison coluns will be automaticaly added.
 
 **Please note that you have to specify a column with __only__ numeric values. Remove strings or ambiguous values. Otherwise, you will have an error message.**
 
-You can add all the combinaison you want, but not twice the same (Warning message if this case). If you have done a mistake, you can remove the last added combinaison with the red button. Finally you can launch the computation with the `Compare` button. A progress bar will be displayed to warn you about the calculation progress. A little moment can occured before the starting of calculation because of compilation of some functions.
+You can add all the combinaison you want, but not twice the same (Warning message if this case). If you have done a mistake, you can remove the last added combinaison with the red button. Finally you can launch the computation with the `Compare` button. A progress bar will be displayed to warn you about the calculation progress. A little moment can occured before the starting of calculation because of compilation of some functions. You can now check your results files !
 
 **Note that the calculations can be parallelised by activating the multiprocessing. A spinbox will appeare to ask you how many processes you want. This is highly not recommended an the .exe version.**
+
+
+- Localisation visualisation
+
+This feature can be accesed through the CSV viewer of the project. If you have loaded a result distance file, you can select with left-click a transcript Ensembl ID and two coordinates. Once done, you can right-click and a menu will appear. You can decide to plot the configuration with the DNA distances or not.
+
+Example:
+
+<img src="src/Ressources/readme_data/transcrit_visualisation.png" alt="home" width="500">
+
+
 ## Authors
 
 **First author**
