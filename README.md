@@ -104,7 +104,7 @@ You have a section to load the reference datasets. The calculations will be base
 
 After that you have to select an output directory ans an output file name. If nothing is given, the output files will be in the root prooject with just `dna`or `rna`prefix. If everythin is done, you can click and `Validate`.
 
-<img src="src/Ressources/readme_data/distance_menu2.png" alt="home" width="400">
+<img src="src/Ressources/readme_data/distance_menu2.png" alt="home" width="600">
 
 Some elements will be added to the window. Now you can select the columns to compare with the combo boxes. If you have chosen a specific splicing type or all, the comparison coluns will be automaticaly added.
 
