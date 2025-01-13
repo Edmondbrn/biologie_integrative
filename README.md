@@ -77,7 +77,7 @@ This part will be dedicated to explain how to use the software.
 - Home view
 <img src="src/Ressources/readme_data/home.png" alt="home" width="400">
 
-When you start the program, a window like this will open. From this window you can load datasets from the menu `File`, or from the table icon. If you don't want to load a datasets directly, you can click on the `Actions` menu to get access to the features.
+When you start the program, a window like this will open. From this window you can load datasets from the menu `File`, or from the table icon. If you choose this way to load files, you have to know the order and name of the columns as the automated detector will classify it as a compared file if the first column is "GeneID", and as a reference file otherwise. You may bypass this by clicking on the `Actions` menu to open a window where you can upload your files however you choose.
 
 - Convert NCBI transcript IDs into Ensembl IDs
 
