@@ -1,4 +1,4 @@
-gene_name	refseq_complete	refseq	start	end	seq	ensembl_transcript_id
+gene_name	refseq_complete	refseq	start	end	seq	ensembl_id
 Msh2	NM_008628.2	NM_008628	2315	2334	ATTTGGGTTAGCATGGGCT	ENSMUST00000024967
 Dlc1	XM_006509168.3	XM_006509168	2107	2126	CTGCAGATAGATTACAAGG	Unknown
 Mmp7	NM_010810.5	NM_010810	603	622	GGCGGAGATGCTCACTTTG	ENSMUST00000018767

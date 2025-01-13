@@ -1,11 +1,9 @@
 import pyensembl as pb
 from pandas import read_csv, DataFrame
 import os
-import regex
+from numpy import int64
 
-NB_PROCESS = 4
 ENSEMBL_NAME = "ensembl_id"
-SEQUENCE_NAME = "seq"
 RELEASE = 102
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -66,34 +64,6 @@ class SequenceFinderLazy():
     def isRnaCoordNumber(coord):
         return isinstance(coord, int)
     
-
-    
-
-
-  
-    
-    @staticmethod
-    def align(cDNA : str, sequence : str) -> tuple[int, int]:
-        """
-        Method to align the sequence on the cDNA
-        """
-        pattern = f"({sequence}){{e<=0}}"
-        matches = list(regex.finditer(pattern, cDNA))
-        
-        if not matches:
-            return ("Not found", "Not found")
-        elif len(matches) == 1:
-            start = matches[0].start()
-        else:
-            print("Multiple start found")
-            for idx, match in enumerate(matches):
-                print(f"{idx}: {match.start()}")
-            position = int(input(f"Choose which one you want to keep: "))
-            start = matches[position].start()
-        
-        end = start + len(sequence)
-        return start, end
-
 
     
     def __spliced_to_genomic(self, transcript : pb.Transcript, spliced_positions : list[int]):
@@ -164,8 +134,8 @@ class SequenceFinderLazy():
         # Pour chaque ligne, on va chercher l'ID Ensembl, le start et end ensembl
         for i in range(len(self.__data_prot)):
             ensembl_id_val = self.__data_prot.loc[i, "ensembl_id"]
-            start_rna = self.__data_prot.loc[i, "start_ensembl"]
-            end_rna = self.__data_prot.loc[i, "end_ensembl"]
+            start_rna = self.__data_prot.loc[i, "start"]
+            end_rna = self.__data_prot.loc[i, "end"]
 
             try:
                 # Récupération du transcript par ID
@@ -175,14 +145,12 @@ class SequenceFinderLazy():
                 start_list.append("Not found")
                 end_list.append("Not found")
                 continue
-
             # Vérifie que les positions sont valides
-            if isinstance(start_rna, int) and isinstance(end_rna, int):
+            if isinstance(start_rna, int64) and isinstance(end_rna, int64):
                 # On crée la plage de positions splicées
                 spliced_positions = range(start_rna, end_rna + 1)
                 # Conversion vers les positions génomiques
                 genomic_range = self.__spliced_to_genomic(transcript, spliced_positions)
-
                 if len(genomic_range) > 0:
                     # On prend le premier élément pour le début, et le dernier pour la fin
                     start_g = genomic_range[0][0]
@@ -201,14 +169,10 @@ class SequenceFinderLazy():
         self.__data_prot["end_genomic"] = end_list
 
         # Sauvegarde du fichier
-        # self.__data_prot.to_csv("data_filteredfinal3.tsv", sep="\t", index=False)
+        self.__data_prot.to_csv("data_filteredfinal3.tsv", sep="\t", index=False)
      
-        
-
-
-
-
 if __name__ == "__main__":
-    df_prot = read_csv("data_filtered.tsv", sep = "\t", header = 0)
-    app = SequenceFinder(df_prot)
+    df_prot = read_csv("/home/edmond/Documents/GB5/biologie_integrative/src/Ressources/data/FMRP_Binding_sites_mouse_Maurin_NAR_2014_merged.tsv", sep = "\t", header = 0)
+    df_prot = df_prot.drop(columns=["seq"])
+    app = SequenceFinderLazy(df_prot)
     app.start()
