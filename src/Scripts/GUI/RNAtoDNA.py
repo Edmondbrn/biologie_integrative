@@ -70,7 +70,7 @@ class RNAtoDNAWindow(QDialog):
         Ouvre une boîte de dialogue pour sélectionner le fichier d'entrée.
         """
         file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(self, "Select RNA File", "", "CSV files (.csv);;TSV files (.tsv);;Excel files (.xlsx)")
+        file_path, _ = file_dialog.getOpenFileName(self, "Select RNA File", "", "CSV Files (*.csv);;TSV Files (*.tsv*);;Excel Files (*.xlsx)")
         if file_path:
             self.input_file = file_path
             self.input_file_label.setText(f"Selected: {os.path.basename(file_path)}")
