@@ -28,7 +28,7 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         """
         Override this mother method to let the user selcect a folder insted of a file
         """
-        group_second = QGroupBox("Second file")
+        group_second = QGroupBox("Folder selection")
         second_layout = QVBoxLayout(group_second)
 
         self.label_instruction_2 = QLabel("Please select the folder containing all the files to compare")

@@ -1,7 +1,8 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout, QWidget, QPushButton,
     QToolBar, QStatusBar, QMenu, QSpacerItem, QSizePolicy,
-    QFileDialog, QToolButton, QTableWidgetItem, QTableWidget, QApplication
+    QFileDialog, QToolButton, QTableWidgetItem, QTableWidget, 
+    QApplication, QLabel, QWidgetAction
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt, QSize, QPoint
@@ -12,6 +13,7 @@ from .all_splicing_distances_window import AllSplicingDistancesWindow
 from .app_utils import show_alert, load_stylesheet
 
 from ..Back.DrawGene import GeneImage
+from ..Back.Id_convertor import *
 from ..GLOBAL import *
 
 import sys
@@ -21,6 +23,7 @@ import csv
 
 from ..Back.distances import *
 from .CSV_Viewer import CSVViewer
+from .EnsemblDialog import EnsemblDialog
 
 def load_stylesheet(file_path):
     with open(file_path, "r") as file:
@@ -33,7 +36,8 @@ class MainWindow(QMainWindow):
         self.file_path = None
         self.prot_file = None
         self.genomic_file = None
-        self.output_file = None
+        self.output_file = None 
+        self.release = f"release : {RELEASE}, species : {SPECY}"
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
 
@@ -46,7 +50,6 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(load_stylesheet(QSS_PATH))
 
         self.__create_menu()
-
         # Central widget
         central_widget = QWidget()
         central_widget.setObjectName("central_widget")
@@ -97,7 +100,15 @@ class MainWindow(QMainWindow):
         button_convert.setStatusTip("Convert RNA coordinates to genomic coordinates")
         button_convert.triggered.connect(lambda: self.onMyToolBarButtonClick("test pression bouton"))
 
- 
+        #Bouton pour convertir les ID d'ensembl à NCBI
+        button_convert_ID = QAction(QIcon(f"{ICON_PATH}address-book-blue.png"), "Change NCBI IDs to Ensembl IDs", self)
+        button_convert_ID.setStatusTip("Change NCBI IDs to Ensembl IDs")
+        button_convert_ID.triggered.connect(lambda: self.file_loader_ID())
+
+        button_change_release = QAction(QIcon(f"{ICON_PATH}arrow-circle-double.png"), "Change release and species", self)
+        button_change_release.setStatusTip("Change the release and species of the ensembl genome reference")
+        button_change_release.triggered.connect(lambda: self.change_release())
+
         # ============================ définition des sous menus ===============================
         calculate_distances_menu = QMenu("Calculate distances", self)
         calculate_distances_menu.setIcon(QIcon(f"{ICON_PATH}ruler.png"))
@@ -110,7 +121,7 @@ class MainWindow(QMainWindow):
 
         # Ajoute les options all_splicing et manual
         action_all_splicing = QAction("Calculate distances for all splicing", self)
-        action_all_splicing.triggered.connect(lambda: self.onCalculateDistances("all_splicing", self.prot_file, self.genomic_file))
+        action_all_splicing.triggered.connect(lambda: self.onCalculateAllDistances("all_splicing", self.prot_file, self.genomic_file))
         action_all_splicing.setStatusTip("Calculate distances for all splicing events")
         calculate_distances_menu.addAction(action_all_splicing)
 
@@ -118,7 +129,6 @@ class MainWindow(QMainWindow):
         action_manual.triggered.connect(lambda: self.onManualDistances(self.prot_file, self.genomic_file))
         action_manual.setStatusTip("Calculate distances manually")
         calculate_distances_menu.addAction(action_manual)
-
 
         self.setStatusBar(QStatusBar(self))
 
@@ -130,8 +140,30 @@ class MainWindow(QMainWindow):
         file_menu.addAction(button_quit)
         # Menu Action de la barre de tâches
         action_menu = menu.addMenu("Actions")
+        action_menu.addAction(button_convert_ID)
         action_menu.addAction(button_convert)
         action_menu.addMenu(calculate_distances_menu)
+
+        #menu download
+        download_menu = menu.addMenu("Release")
+        download_menu.addAction(button_change_release)
+
+        menu.addMenu(self.release)
+
+    def dynamic_release(self, menu):
+        # Supprimer le menu s'il existe déjà
+        existing_menu = menu.findChild(QMenu, "release_menu")
+        if existing_menu:
+            existing_menu.deleteLater()
+
+        # Créer un nouveau menu avec le texte des variables globales
+        self.release_menu = QMenu(f"Release: {RELEASE}, Species: {SPECY}", self)
+        self.release_menu.setObjectName("release_menu")
+        menu.addMenu(self.release_menu)
+
+    def change_release(self):
+        dialog = EnsemblDialog()
+        dialog.exec()
 
     def onManualDistances(self, reference_file=None, genomic_file=None):
         dialog = ManualDistancesWindow(reference_file, genomic_file)
@@ -158,11 +190,11 @@ class MainWindow(QMainWindow):
         if file_path:
             self.file_path_output = file_path
             self.file_loader_output()
-
-    def save_file_dialog(self):
-        file_name, _ = QFileDialog.getSaveFileName(self, "File Explorer", "", "All Files (*);;CSV Files (*.csv)")
-        if file_name:
-            self.file_name = file_name
+    
+    def file_loader_ID(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "File Explorer", "", "All Files (*);;CSV Files (*.csv)")
+        if file_path:
+            add_ensembl_ids(file_path)
 
     def file_loader_output(self):
         if self.file_path_output:
@@ -182,14 +214,12 @@ class MainWindow(QMainWindow):
         else:
             return None
         
-
     def index_column_detector_excel(self, file_path):
         file = pd.read_excel(file_path, nrows=10)
         if file.columns[0] == "" or 'Unnamed: 0' in file.columns[0]:
             return 0
         else:
             return None
-
 
     def file_loader(self):
         if self.file_path:
@@ -222,7 +252,6 @@ class MainWindow(QMainWindow):
         setattr(self, variable_name, None)
         self.dynamic_menues(self.findChild(QToolBar, "My main toolbar"))
 
-
     def detect_separator(self, file_path):
         """
         Detect the separator used in a CSV file.
@@ -240,8 +269,8 @@ class MainWindow(QMainWindow):
         dialog = SplicingDistancesWindow(splice_type, reference_file, genomic_file)
         dialog.exec()
 
-    def onCalculateAllDistances(self, reference_file, genomic_file):
-        dialog = AllSplicingDistancesWindow("all_splicing", reference_file, genomic_file)
+    def onCalculateAllDistances(self, splicing, reference_file, genomic_file):
+        dialog = AllSplicingDistancesWindow(splicing, reference_file, genomic_file)
         dialog.exec()
 
     def dynamic_menues(self, toolbar):

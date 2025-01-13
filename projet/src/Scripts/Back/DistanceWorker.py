@@ -5,7 +5,6 @@ import numpy as np
 import os
 from .distances_utils import ComputeDistanceManuel_wrapper, parallel_start_manual, FilterDataProt, fill_rna_row
 
-
 class DistancesWorker(QThread):
     # On déclare les signaux dans la classe
     progress_changed = pyqtSignal(int)

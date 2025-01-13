@@ -9,7 +9,7 @@ from ..GLOBAL import *
 
 class SplicingDistancesWindow(ManualDistancesWindow):
     
-    def __init__(self, splice_type : str, reference_file=None, genomic_file=None):
+    def __init__(self, splice_type : str, reference_file, genomic_file):
         super().__init__(reference_file, genomic_file)
         self.splice = splice_type
         self.couple = []

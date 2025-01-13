@@ -181,8 +181,6 @@ class ManualDistancesWindow(QDialog):
         else:
             self.show_column_selection()
         
-
-
     def send_files(self, first_file, second_file):
         files = [first_file, second_file]
         names = [os.path.basename(self.file_dict["reference"]), os.path.basename(self.file_dict["second"])]
