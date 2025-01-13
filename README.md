@@ -141,7 +141,7 @@ Some elements will be added to the window. Now you can select the columns to com
 
 **Please note that you have to specify a column with __only__ numeric values. Remove strings or ambiguous values. Otherwise, you will have an error message.**
 
-You can add all the combinaison you want, but not twice the same (Warning message if this case). If you have done a mistake, you can remove the last combinaison with the `remove comparison` button in red. Finally you can launch the computation with the `Compare` button. A progress bar will be displayed to inform you about the calculation progress. A little moment can occured before the starting of calculation because of compilation of some functions. You can now check your results files !
+You can add all the combinaison you want, but not twice the same (Warning message if this case). If you have done a mistake, you can remove the last combinaison with the `remove comparisons` button in red. Finally you can launch the computation with the `Compare` button. A progress bar will be displayed to inform you about the calculation progress. A little moment can occured before the starting of calculation because of compilation of some functions. You can now check your results files !
 
 **Note that the calculations can be parallelised by activating the multiprocessing. A spinbox will appear to ask you how many processes you want. This is highly ill-advised on the .exe version.**
 
