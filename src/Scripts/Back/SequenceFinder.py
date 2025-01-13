@@ -4,7 +4,7 @@ import os
 import regex
 
 NB_PROCESS = 4
-ENSEMBL_NAME = "ensembl_transcript_id"
+ENSEMBL_NAME = "ensembl_id"
 SEQUENCE_NAME = "seq"
 RELEASE = 102
 

@@ -50,11 +50,11 @@ class ParsingRmats(QMainWindow):
         if self.rmats_dir and self.output_dir:
             try:
                 self.processRmats(self.rmats_dir, self.output_dir)
-                show_alert("info", "rMATS files processed successfully!")
+                show_alert("Info", "rMATS files processed successfully!")
             except Exception as e:
-                show_alert("error", f"An error occurred: {str(e)}")
+                show_alert("Error", f"An error occurred: {str(e)}")
         else:
-            show_alert("warning", "Please select both rMATS and output directories!")
+            show_alert("Warning", "Please select both rMATS and output directories!")
 
     def processRmats(self, rmats_dir: str, output_dir: str):
         # Change the current working directory to the output directory
