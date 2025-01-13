@@ -3,6 +3,19 @@ QMainWindow {
     color : black;
 }
 
+QToolBar{
+    background-color: #302b2b;
+    border-style: solid;
+    border-width : 2px;
+    border-radius: 10px;
+}
+
+QMenuBar{
+    background-color: #302b2b;
+    border-style: solid;
+    border-width : 2px;
+}
+
 QDialog {
     background-color: #dddada;
     color : black;
