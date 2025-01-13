@@ -22,7 +22,7 @@ def convert_refseq_to_ensembl(refseq_ids):
 def add_ensembl_ids(file_path: str):
     df = pd.read_csv(file_path, sep='\t')
     df = df.drop(columns=["ensembl_transcript_id"])
-    ncbi_ids = df["refseq_complete"].tolist()
+    ncbi_ids = df["refseq"].tolist()
     conversion = convert_refseq_to_ensembl(ncbi_ids)
     
     # Créer un dictionnaire de conversion
@@ -37,7 +37,7 @@ def add_ensembl_ids(file_path: str):
             conversion_dict[res['query']] = '\'Not Found\''
     
     # Ajouter une nouvelle colonne avec les identifiants Ensembl
-    df['ensembl_id'] = df['refseq_complete'].map(conversion_dict).fillna('Not Found')
+    df['ensembl_id'] = df['refseq'].map(conversion_dict).fillna('Not Found')
     
     # Sauvegarder le fichier modifié
     df.to_csv(file_path +"_converted", sep='\t', index=False)
