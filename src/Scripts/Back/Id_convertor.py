@@ -22,7 +22,6 @@ def convert_refseq_to_ensembl(refseq_ids):
 
 def add_ensembl_ids(file_path: str, progress_signal):
     df = pd.read_csv(file_path, sep='\t')
-    df = df.drop(columns=["ensembl_transcript_id"])
     ncbi_column = None
     for column in df.columns:
         if any(prefix in str(df[column].iloc[0]) for prefix in ["NM", "NR", "XM", "XR"]):

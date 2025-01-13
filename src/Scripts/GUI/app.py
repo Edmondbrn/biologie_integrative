@@ -402,6 +402,20 @@ class MainWindow(QMainWindow):
         self.viewer = CSVViewer(file, file_name)
         self.viewer.show()
 
+    def onRNAtoDNA(self):
+        """
+        Cette méthode est appelée lorsque l'on clique sur le bouton dans la barre d'outils.
+        Elle ouvrira la fenêtre RNAtoDNAWindow pour convertir les coordonnées mRNA en coordonnées génomiques.
+        """
+        # Créez l'instance de la fenêtre RNAtoDNAWindow
+        window = RNAtoDNAWindow()
+        window.exec()  # Affichez la fenêtre
+
+    def openParsingRmatsWindow(self):
+    # Création et affichage de la fenêtre ParsingRmats
+        self.parsing_window = ParsingRmats()  # Instancie la fenêtre ParsingRmats
+        self.parsing_window.show()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

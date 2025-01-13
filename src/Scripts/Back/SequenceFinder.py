@@ -18,11 +18,7 @@ class SequenceFinder():
     coordonnées ADN à l'aide de l'API REST de Ensembl.
     """
 
-    def __init__(self, 
-                #  data_splice : DataFrame, 
-                 data_prot : DataFrame, 
-                 aim_assembly : str = "GRCm38", 
-                 species : str = "mouse"):
+    def __init__(self, data_prot : DataFrame, ):
         """
         Constructeur de la classe SequenceFinder.
         :param data_splice: DataFrame contenant les coordonnées ARN à convertir.
@@ -32,14 +28,11 @@ class SequenceFinder():
         # self.__data_splice = data_splice
         super().__init__()
         self.__data_prot = data_prot
-        self.__species = species
-        self.__assembly = aim_assembly
-        # TODO change the ensemble release according to user input
-        self.__bdd = pb.EnsemblRelease(RELEASE, species=SPECIES) # version 102 pour avoir l'assemblage 38 de la souris
+        self.__species, self.__release = self.release_reader(RELEASE_FILE_PATH)
+        self.__release = int(self.__release)
+        self.__bdd = pb.EnsemblRelease(self.__release, species=self.__species) # version 102 pour avoir l'assemblage 38 de la souris
         self.__bdd.download()
         self.__bdd.index()
-        self.species, self.release = self.release_reader(RELEASE_FILE_PATH)
-        self.release = int(self.release)
 
     def getDataProt(self):
         return self.__data_prot
