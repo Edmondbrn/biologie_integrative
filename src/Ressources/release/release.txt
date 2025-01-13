@@ -1,2 +1,2 @@
 mus_musculus
-105225
+102
