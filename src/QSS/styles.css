@@ -8,12 +8,14 @@ QToolBar{
     border-style: solid;
     border-width : 2px;
     border-radius: 10px;
+    color :  white;
 }
 
 QMenuBar{
     background-color: #302b2b;
     border-style: solid;
     border-width : 2px;
+    color :  white;
 }
 
 QDialog {

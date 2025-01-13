@@ -60,7 +60,7 @@
     # Active l'environnement anaconda
     # --------------------------------------------------------------------
     SHELL ["bash", "-c"]
-    RUN echo "conda activate bio_int" >> ~/.bashrc
+    RUN echo "conda activate RepositionX" >> ~/.bashrc
     
     # --------------------------------------------------------------------
     # COpie tout le projet dans le conteneur
