@@ -1,11 +1,8 @@
 
 # RepostionX
-<img src="src/Ressources/Icones/fugue-icons-3.5.6/icons/BI_logo.png" alt="BI Logo" width="200" style="float: right; margin-left: 20px;">
+<img src="src/Ressources/Icones/fugue-icons-3.5.6/icons/BI_logo.png" alt="BI Logo" width="200">
 
-RepositionX is a `python3` free and opensource software which allows you to compute distances 
-between two sites on RNA or DNA. RepositionX is a final student year project at Polytech Nice-Sophia 
-bio-engineering school in partnership with the laboratory IPMC member of the CNRS.
-
+RepositionX is a `python3` free and opensource software wich allow you to compute distances between two sites on RNA or DNA. RepositionX is a final student year project at Polytech Nice-Sophia bio-engineering school in partnership with the labaratory IPMC memeber of the CNRS.
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 [![python](https://img.shields.io/badge/Python-3.10.15-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
@@ -16,8 +13,6 @@ bio-engineering school in partnership with the laboratory IPMC member of the CNR
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/Docker-v27.4.1-brightgreen?logoColor=(0%2C0%2C255))
 ## Installation
-
-The project is compatible with Windows and Debian Linux. Please be sure that python3.10 is installed on your machine and check if python is added to your OS PATH with :
 
 ```batch
     python --version
@@ -90,5 +85,4 @@ Note that if you want to get back the ouput file of the program, you wille have 
 This part will be dedicated to explain how to use the software.
 
 - Home view
-
-
+<img src="src/Ressources/readme_data/home.png" alt="home" width="400">
