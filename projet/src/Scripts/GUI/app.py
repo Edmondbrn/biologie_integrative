@@ -23,6 +23,8 @@ from .CSV_Viewer import CSVViewer
 from .Error_window import SimpleWindow
 
 from .RNAtoDNA import RNAtoDNAWindow
+from .parsingRmats import ParsingRmats
+
 
 def load_stylesheet(file_path):
     with open(file_path, "r") as file:
@@ -92,6 +94,13 @@ class MainWindow(QMainWindow):
         button_convert.setStatusTip("Convert RNA coordinates to genomic coordinates")
         button_convert.triggered.connect(lambda: self.onRNAtoDNA())
 
+        # Bouton pour traiter les fichiers rMATS
+        button_convert2 = QAction(QIcon(f"{ICON_PATH}magnifier.png"), "Parsing rMATS", self)
+        button_convert2.setStatusTip("Open the rMATS Parser tool")
+        button_convert2.triggered.connect(self.openParsingRmatsWindow)
+
+
+
  
         # ============================ définition des sous menus ===============================
         calculate_distances_menu = QMenu("Calculate distances", self)
@@ -125,6 +134,7 @@ class MainWindow(QMainWindow):
         # Menu Action de la barre de tâches
         action_menu = menu.addMenu("Actions")
         action_menu.addAction(button_convert)
+        action_menu.addAction(button_convert2)
         action_menu.addMenu(calculate_distances_menu)
 
     def onManualDistances(self, reference_file=None, genomic_file=None):
@@ -271,6 +281,11 @@ class MainWindow(QMainWindow):
         # Créez l'instance de la fenêtre RNAtoDNAWindow
         window = RNAtoDNAWindow()
         window.exec()  # Affichez la fenêtre
+
+    def openParsingRmatsWindow(self):
+    # Création et affichage de la fenêtre ParsingRmats
+        self.parsing_window = ParsingRmats()  # Instancie la fenêtre ParsingRmats
+        self.parsing_window.show()
 
 
 if __name__ == "__main__":
