@@ -28,7 +28,7 @@ There is a .exe file which launchs the project. But you can also use the .bat fi
 
 
 - Linux:
-The project contains a Anaconda environment file. You can install the virtual environement with the command :
+The project contains an Anaconda environment file. You can install the virtual environement with the command :
 
 ```bash
   conda env create -f env.yml
