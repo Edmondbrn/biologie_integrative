@@ -85,7 +85,7 @@ This feature is destined to convert NCBI transcript identifiers into Ensembl ide
 
 - Parsing Rmats
 
-Inside the `Actions` menu, you can click on the `Parsing Rmats`submenu. It will ask you the location of the directory where the Rmats files are stored. Beware that the programm doesn't support any other separator than (\t) for this particular function and will crash. An information window will tell you when the conversion is finished (almost instantly)
+Inside the `Actions` menu, you can click on the `Parsing Rmats`submenu. It will ask you the location of the directory where the Rmats files are stored. <ins> Beware that the programm doesn't support any other separator than (\t) for this particular function and will crash </ins>. An information window will tell you when the conversion is finished (almost instantly)
 
 - Convert mRNA to DNA
 
