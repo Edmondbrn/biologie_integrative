@@ -159,7 +159,7 @@ __Example__:
 
 **First authors**
 - [@Berne Edmond](https://github.com/Edmondbrn)
-- [@Martin François](https://www.github.com/octokatherine)
+- [@Martin François](https://github.com/exovie)
 
 **Other author**
 - [@Rouget Simon](https://www.github.com/octokatherine)
