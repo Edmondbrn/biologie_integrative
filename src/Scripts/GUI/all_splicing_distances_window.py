@@ -30,7 +30,7 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         """
         Override this mother method to let the user selcect a folder insted of a file
         """
-        group_second = QGroupBox("Folder selection")
+        group_second = QGroupBox()
         second_layout = QVBoxLayout(group_second)
 
         self.label_instruction_2 = QLabel("Please select the folder containing all the files to compare")
@@ -89,6 +89,7 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
 
             # reading the files inside the input folder
             self.dict_splicing_files = {}
+            print(self.file_dict["second"])
             for files in os.listdir(self.file_dict["second"]):
                 self.dict_splicing_files[files.split(".")[0]] = pd.read_csv(os.path.join(self.file_dict["second"], files), sep=self.second_separator_combo.currentText().split(" | ")[1], engine = "python")
                 
@@ -120,11 +121,12 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         # Fixer les couples de colonnes à comparer
         try :
             for couple in self.GenerateCouple():
+                print(couple)
                 pair = f"{couple[0]} - {couple[1]}"
                 self.comparison_text.appendPlainText(pair)
                 self.compare_pairs.append(pair) # liste pour la classe mère pour qu'elle le passe au worker
         except Exception as e:
-            show_alert("Error", f"Failed to read files. Please check the column names: {e}")
+            show_alert("Error", f"Failed to read files because of : {e}")
             return
         self.group_layout.addLayout(self.button_compare_box)
 
@@ -246,7 +248,7 @@ class AllSplicingDistancesWindow(ManualDistancesWindow):
         self.first_update = True
         
         # Créer un sous-layout horizontal pour centrer la barre
-        self.group_progress = QGroupBox("Progress")
+        self.group_progress = QGroupBox()
         self.progress_layout = QVBoxLayout(self.group_progress)
         hbox = QHBoxLayout()
         hbox.addStretch(1)
